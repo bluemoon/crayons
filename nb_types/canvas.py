@@ -28,10 +28,11 @@ class PathWrap:
 
     def getBounds(self, *arguments):
         print arguments
+        print self.path.bounds()
         return (0, 0, 0, 0)
 
 class PILHelper:
-    def _decToRgba(self, RGBA):
+    def decToRgba(self, RGBA):
         R = int(RGBA[0] * 255)
         G = int(RGBA[1] * 255)
         B = int(RGBA[2] * 255)
@@ -75,7 +76,8 @@ class PILCanvas(CanvasMixin):
         self.canvas      = Image.new("RGB", (width, height), "white")
         self.AGG_canvas  = Draw(self.canvas)
         self.AGG_canvas.setantialias(True)
-        
+        self.helper      = PILHelper()
+
         self.context = PILContext()
 
     def show(self, *arguments):
@@ -173,30 +175,9 @@ class PILCanvas(CanvasMixin):
         if not ctx:
             ctx = self._context
         
-        if path._strokewidth:
-            ctx.set_line_width(path._strokewidth)
-
-        if path._fillcolor:
-            ctx.set_source_rgba(*path._fillcolor)
-            if path._strokecolor:
-                ctx.set_source_rgba(*path._strokecolor)
-                ctx.stroke()
-            else:
-                ## if there isn't a stroke, use plain fill() to close the path
-                ctx.fill()
-
-        elif path._strokecolor:
-            ## if there's no fill, apply stroke only
-            ctx.set_source_rgba(*path._strokecolor)
-            ctx.stroke()
-            #strokeColor = *path._strokecolor
-        else:
-            print _("Warning: Canvas object had no fill or stroke values")
-            
         path.path.initPath()
         nPath = path.path.path
         for element in path.data:
-            print element
             cmd    = element[0]
             values = element[1:]
 
@@ -228,13 +209,37 @@ class PILCanvas(CanvasMixin):
                 ctx.scale (w / 2., h / 2.)
                 ctx.arc (0., 0., 1., 0., 2 * pi)
                 ctx.restore()
-
             else:
                 raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
-        
-        self.AGG_canvas.path( nPath, Pen("black"))
-        self.AGG_canvas.flush()
 
+        PathArgs      = {}
+        PenArguments  = []
+        PenDict       = {}
+        brush         = None
+
+        if path._fillcolor:
+            (R, G, B, A) = self.helper.decToRgba(path._fillcolor)
+            color = (R, G, B)
+            brush = Brush(color, opacity=A)
+
+        if path._strokecolor:
+            (R, G, B, A) = self.helper.decToRgba(path._strokecolor)
+            PenArguments.append((R, G, B))
+            PenDict["opacity"] = A
+            
+        if path._strokewidth:
+            PenDict["width"] = path._strokewidth
+
+        if len(PenArguments) > 0 or len(PenDict.items()) > 0:
+            PathArgs['pen'] = Pen(*tuple(PenArguments), **PenDict)
+        if brush:
+            PathArgs['brush'] = brush
+        
+        pathDraw = []
+        
+        self.AGG_canvas.path(nPath, **PathArgs)
+
+        self.AGG_canvas.flush()
 
 class BezierPath(Grob, TransformMixin, ColorMixin):
     stateAttributes = ('_fillcolor', '_strokecolor', '_strokewidth', '_transform', '_transformmode')
@@ -346,7 +351,34 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
         Returns the path's bounding box. Note that this doesn't
         take transforms into account.
         '''
-        return self._path.getBounds(self.data)
+        coordinates = []
+        X_Set = []
+        Y_Set = []
+
+        for data in self.data:
+            if len(data.getXY()) > 0:
+                coordinates.append(data.getXY())
+
+        print coordinates
+        while coordinates:
+            Popped = coordinates.pop()
+            if len(Popped) == 2:
+                X_Set.append(Popped[0])
+                Y_Set.append(Popped[1])
+            else:
+                pass
+
+        if len(X_Set) and len(Y_Set):
+            max_X = max(X_Set)
+            max_Y = max(Y_Set)
+
+            min_X = min(X_Set)
+            min_Y = min(Y_Set)
+
+            return (min_X, min_Y, max_X, max_Y)
+        else:
+            return (0, 0, 0, 0)
+
 
     bounds = property(_get_bounds)
 

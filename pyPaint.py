@@ -10,7 +10,7 @@ from defaults             import *
 from math import *
     
 class PyPaintContext:
-    def __init__ (self, inputscript=None, targetfilename=None, canvas=None, gtkmode=False, ns=None):
+    def __init__ (self, inputscript=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):
         self.inputscript = inputscript
         self.targetfilename = targetfilename
 
@@ -42,8 +42,13 @@ class PyPaintContext:
         self.FRAME = 0
 
         self.screen_ratio = None
-        self.WIDTH  = DEFAULT_WIDTH
-        self.HEIGHT = DEFAULT_HEIGHT
+
+        if width and height:
+            self.WIDTH  = width
+            self.HEIGHT = height
+        else:
+            self.WIDTH  = DEFAULT_WIDTH
+            self.HEIGHT = DEFAULT_HEIGHT
 
         if canvas:
             self.canvas = canvas

@@ -1,0 +1,13 @@
+Index: aggdraw-new/setup.py
+===================================================================
+--- aggdraw-new.orig/setup.py	2009-11-15 21:52:00.000000000 -0800
++++ aggdraw-new/setup.py	2009-11-15 21:53:14.000000000 -0800
+@@ -29,7 +29,7 @@
+ """
+ 
+ # pointer to freetype build directory (tweak as necessary)
+-FREETYPE_ROOT = "../../kits/freetype-2.1.10"
++FREETYPE_ROOT = "/usr"
+ 
+ if not os.path.isdir(FREETYPE_ROOT):
+     print "===", "freetype not available (edit setup.py to enable)"
