@@ -13,17 +13,17 @@ CENTER = "center"
 CORNER = "corner"
 
 
-MOVETO = "moveto"
-RMOVETO = "rmoveto"
-LINETO = "lineto"
-RLINETO = "rlineto"
-CURVETO = "curveto"
-RCURVETO = "rcurveto"
-ARC = 'arc'
-ELLIPSE = 'ellipse'
-CLOSE = "close"
-START = "start"
+MOVETO    = "moveto"
+RMOVETO   = "rmoveto"
+LINETO    = "lineto"
+RLINETO   = "rlineto"
+CURVETO   = "curveto"
+RCURVETO  = "rcurveto"
+ARC       = 'arc'
+ELLIPSE   = 'ellipse'
+CLOSE     = "close"
+START     = "start"
 
-LEFT = 'left'
-RIGHT = 'right'
-JUSTIFY = 'justify'
+LEFT      = 'left'
+RIGHT     = 'right'
+JUSTIFY   = 'justify'

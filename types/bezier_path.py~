@@ -1,0 +1,176 @@
+from nb_types.transform import Transform
+from mixins import *
+from aggdraw import Path
+
+class BezierPath(Grob, TransformMixin, ColorMixin):
+    stateAttributes = ('_fillcolor', '_strokecolor', '_strokewidth', '_transform', '_transformmode')
+    kwargs = ('fill', 'stroke', 'strokewidth')
+    
+    def __init__(self, ctx, path=None, **kwargs):
+        super(BezierPath, self).__init__(ctx)
+        TransformMixin.__init__(self)
+        ColorMixin.__init__(self, **kwargs)
+
+        if path is None:
+            self._path = Path()
+        
+    def _get_path(self):
+        return self._path
+
+    ### Path methods ###
+    def moveto(self, x, y):
+        self._path.moveto(x, y)
+
+    def lineto(self, x, y):
+        self._path.lineto(x, y)
+
+    def curveto(self, x1, y1, x2, y2, x3, y3):
+        self._path.curveto(x1, y1, x2, y2, x3, y3)
+
+    def closepath(self):
+        self._path.close()
+
+    def setlinewidth(self, width):
+        self.linewidth = width
+
+    def _get_bounds(self):
+        try:
+            r = self._path.boundingRect()
+            return (r.x(), r.y()), (r.width(), r.height())
+            return 
+        except:
+            # Path is empty -- no bounds
+            return (0,0) , (0,0)
+
+    bounds = property(_get_bounds)
+
+    #def contains(self, x, y):
+    #    return self._qpath.contains(QPointF(x,y))
+        
+    ### Basic shapes ###
+    def rect(self, x, y, width, height):
+        self._path.addRect(x, y, width, height)
+        
+    def oval(self, x, y, width, height):
+        self._path.addEllipse(x, y, width, height)
+        
+    def line(self, x1, y1, x2, y2):
+        self._path.moveto(x1, y1)
+        self._path.rlineto(x2, y2)
+
+    ### List methods ###
+
+    '''
+    def __getitem__(self, index):
+        el = self._path.elementAt(index)
+        return PathElement(el)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    def __len__(self):
+        return self._qpath.elementCount()
+
+    def extend(self, pathElements):
+        for el in pathElements:
+            if isinstance(el, (list, tuple)):
+                x, y = el
+                if len(self) == 0:
+                    cmd = MOVETO
+                else:
+                    cmd = LINETO
+                self.append(PathElement(cmd, ((x, y),)))
+            elif isinstance(el, PathElement):
+                self.append(el)
+            else:
+                raise NodeBoxError, "Don't know how to handle %s" % el
+
+    def append(self, el):
+        self._segment_cache = None
+        if el.cmd == MOVETO:
+            self.moveto(el.x, el.y)
+        elif el.cmd == LINETO:
+            self.lineto(el.x, el.y)
+        elif el.cmd == CURVETO:
+            self.curveto(el.ctrl1.x, el.ctrl1.y, el.ctrl2.x, el.ctrl2.y, el.x, el.y)
+        elif el.cmd == CLOSE:
+            self.closepath()
+    '''
+
+    def _get_contours(self):
+        from nodebox.graphics import bezier
+        return bezier.contours(self)
+
+    contours = property(_get_contours)
+
+    ### Drawing methods ###
+    def _get_transform(self):
+        trans = self._transform.copy()
+        if (self._transformmode == CENTER):
+            (x, y), (w, h) = self.bounds
+            deltax = x+w/2
+            deltay = y+h/2
+
+            t = Transform()
+            t.translate(-deltax, -deltay)
+            trans.prepend(t)
+
+            t = Transform()
+            t.translate(deltax, deltay)
+            trans.append(t)
+
+        return trans
+    transform = property(_get_transform)
+
+    def _draw(self, painter):
+        painter.save()
+        self.transform.concat(painter)
+        if self._fillcolor:
+            painter.fillPath(self._qpath, QBrush(self._fillcolor._rgb))
+        if self._strokecolor:
+            p = QPen(QBrush(self._strokecolor._rgb), self._strokewidth)
+            painter.setPen(p)
+            painter.drawPath(self._qpath)
+        painter.restore()
+        
+    ### Mathematics ###
+    def segmentlengths(self, relative=False, n=10):
+        import bezier
+        if relative: # Use the opportunity to store the segment cache.
+            if self._segment_cache is None:
+                self._segment_cache = bezier.segment_lengths(self, relative=True, n=n)
+            return self._segment_cache
+        else:
+            return bezier.segment_lengths(self, relative=False, n=n)
+
+    def _get_length(self, segmented=False, n=10):
+        import bezier
+        return bezier.length(self, segmented=segmented, n=n)
+    length = property(_get_length)
+        
+    def point(self, t):
+        import bezier
+        return bezier.point(self, t)
+        
+    def points(self, amount=100):
+        import bezier
+        if len(self) == 0:
+            raise NodeBoxError, "The given path is empty"
+
+        # The delta value is divided by amount - 1, because we also want the last point (t=1.0)
+        # If I wouldn't use amount - 1, I fall one point short of the end.
+        # E.g. if amount = 4, I want point at t 0.0, 0.33, 0.66 and 1.0,
+        # if amount = 2, I want point at t 0.0 and t 1.0
+        try:
+            delta = 1.0/(amount-1)
+        except ZeroDivisionError:
+            delta = 1.0
+
+        for i in xrange(amount):
+            yield self.point(delta*i)
+            
+    def addpoint(self, t):
+        import bezier
+        self._nsBezierPath = bezier.insert_point(self, t)._nsBezierPath
+        self._segment_cache = None

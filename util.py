@@ -1,10 +1,12 @@
-from __future__ import division
-from math import floor
+from math   import floor
+from glob   import glob
+from random import choice
+
 import os
 import string
-import ctypes
+import random as rnd
 
-from nb_types.new_color import Color
+from types.new_color import Color
 
 def rgb_to_hsl(r, g, b):
     '''Converts RGB values to the HSL colourspace. '''
@@ -186,7 +188,7 @@ def hex_to_rgb(hex):
         r, g, b, a = hex[0:2], hex[2:4], hex[4:6], hex[6:]
         r, g, b, a = [int(n, 16)/255.0 for n in (r, g, b, a)]
     return r, g, b, a
-    
+
 hex2rgb = hex_to_rgb
 
 def lab_to_rgb(l, a, b):
@@ -270,7 +272,7 @@ def hsv_to_rgb(h, s, v):
     """
     
     if s == 0: return v, v, v
-        
+    
     h = h / (60.0/360)
     i =  floor(h)
     f = h - i
@@ -318,3 +320,63 @@ def rgba_to_argb(stringImage):
     tempBuffer[3::4] = stringImage[3::4]
     stringImage = ''.join(tempBuffer)
     return stringImage
+
+
+
+
+
+
+def grid(cols, rows, colSize=1, rowSize=1, shuffled = False):
+    """Returns an iterator that contains coordinate tuples.
+    
+    The grid can be used to quickly create grid-like structures. A common way to use them is:
+        for x, y in grid(10,10,12,12):
+            rect(x,y, 10,10)
+    """
+    rowRange = range(int(rows))
+    colRange = range(int(cols))
+    if (shuffled):
+        shuffle(rowRange)
+        shuffle(colRange)
+    for y in rowRange:
+        for x in colRange:
+            yield (x*colSize,y*rowSize)
+
+def random(v1=None, v2=None):
+    """Returns a random value.
+    
+    This function does a lot of things depending on the parameters:
+    - If one or more floats is given, the random value will be a float.
+    - If all values are ints, the random value will be an integer.
+    
+    - If one value is given, random returns a value from 0 to the given value.
+      This value is not inclusive.
+    - If two values are given, random returns a value between the two; if two
+      integers are given, the two boundaries are inclusive.
+    """
+
+    if v1 != None and v2 == None: # One value means 0 -> v1
+        if isinstance(v1, float):
+            return rnd.random() * v1
+        else:
+            return int(rnd.random() * v1)
+    elif v1 != None and v2 != None: # v1 -> v2
+        if isinstance(v1, float) or isinstance(v2, float):
+            start = min(v1, v2)
+            end = max(v1, v2)
+            return start + rnd.random() * (end-start)
+        else:
+            start = min(v1, v2)
+            end = max(v1, v2) + 1
+            return int(start + rnd.random() * (end-start))
+    else: # No values means 0.0 -> 1.0
+        return random.random()
+
+def files(path="*"):
+    """Returns a list of files.
+    
+    You can use wildcards to specify which files to pick, e.g.
+        f = files('*.gif')
+    """
+    
+    return glob(path)

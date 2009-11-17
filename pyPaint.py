@@ -1,17 +1,17 @@
 import util
 
-from PIL import Image
-from aggdraw  import *
+from PIL               import Image
+from types.transform   import Transform
+from types.canvas      import PILCanvas, BezierPath
+from types.color       import Color
 
-from nb_types.transform   import Transform
-from nb_types.canvas      import PILCanvas, BezierPath
-from nb_types.new_color   import Color
-from defaults             import *
-from math import *
-    
-class PyPaintContext:
+from defaults          import *
+from math              import *
+from aggdraw           import *
+
+class Context:
     def __init__ (self, inputscript=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):
-        self.inputscript = inputscript
+        self.inputscript    = inputscript
         self.targetfilename = targetfilename
 
         # init internal path container
@@ -124,7 +124,7 @@ class PyPaintContext:
     def ellipse(self, x, y, width, height, draw=True, **kwargs):
         '''Draws an ellipse starting from (x,y)'''
         r = self.BezierPath(**kwargs)
-        r.ellipse(x,y,width,height)
+        r.ellipse(x, y, width, height)
 
         if draw:
             self.canvas.add(r)
@@ -134,12 +134,15 @@ class PyPaintContext:
     def circle(self, x, y, diameter):
         self.ellipse(x, y, diameter, diameter)
 
-    def line(self, x1, y1, x2, y2):
+    def line(self, x1, y1, x2, y2, draw=True):
         '''Draws a line from (x1,y1) to (x2,y2)'''
-        self.beginpath()
-        self.moveto(x1, y1)
-        self.lineto(x2, y2)
-        self.endpath()
+        r = self.BezierPath()
+        r.line(x1, y1, x2, y2)
+
+        if draw:
+            self.canvas.add(r)
+
+        return r
 
     def star(self, startx, starty, points=20, outer=100, inner=50):
         '''Draws a star.
@@ -159,13 +162,12 @@ class PyPaintContext:
                 radius = outer
             x = startx + radius * x
             y = starty + radius * y
-            self.lineto(x,y)
+            self.lineto(x, y)
 
         self.endpath()
 
     def beginpath(self, x=None, y=None):
         self._path = self.BezierPath()
-        #self._path.startPath()
 
         if x and y:
             self._path.moveto(x,y)
@@ -206,16 +208,19 @@ class PyPaintContext:
     def endpath(self, draw=True):
         if self._path is None:
             raise Exception("No current path. Use beginpath() first.")
+
         if self._autoclosepath:
             self._path.closepath()
+
         p = self._path
-        # p.inheritFromContext()
+
         if draw:
             self.canvas.add(p)
             self._path = None
+
         return p
 
-    def drawpath(self,path):
+    def drawpath(self, path):
         if isinstance(path, BezierPath):
             p = self.BezierPath(path)
             self.canvas.add(p)
@@ -227,6 +232,9 @@ class PyPaintContext:
 
     def autoclosepath(self, close=True):
         self._autoclosepath = close
+    
+    def rotate(self, *arguments):
+        pass
 
     def relmoveto(self, x, y):
         '''Move relatively to the last point.'''
@@ -358,7 +366,7 @@ class PyPaintContext:
     def background(self,*args):
         '''Set the background colour.'''
         r = self.BezierPath()
-        r.rect(0, 0, self.WIDTH, self.HEIGHT, None, None)
+        r.rect(0, 0, self.WIDTH, self.HEIGHT)
         r.fill = self.color(*args)
         self.canvas.add(r)
 
@@ -397,3 +405,8 @@ class PyPaintContext:
 
     def color(self, *args):
         return Color(mode=self.color_mode, color_range=self.color_range, *args)
+
+    def Height(self):
+        return self.HEIGHT
+    def Width(self):
+        return self.WIDTH

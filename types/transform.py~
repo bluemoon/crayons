@@ -1,0 +1,78 @@
+
+class Transform(object):
+    def __init__(self, transform=None):
+        self._qtransform = None
+        print transform
+        self._transforms = []
+
+    def _get_transform(self):
+        warnings.warn("The 'transform' attribute is deprecated. Please use _nsAffineTransform instead.", DeprecationWarning, stacklevel=2)
+        return self._qtransform
+
+    transform = property(_get_transform)
+    
+    def set(self, painter):
+        painter.setTransform(self._qtransform)
+
+    def concat(self, painter):
+        trans = painter.transform()
+        painter.setTransform(trans * self._qtransform)
+        print painter
+
+    def copy(self):
+        return Transform(self)
+
+    def __iter__(self):
+        for value in self.matrix:
+            yield value
+
+    def rotate(self, degrees=0, radians=0):
+        ## trans_affine(cos(a), sin(a), -sin(a), cos(a), 0.0, 0.0)
+        if degrees:
+            self._qtransform.rotate(degrees)
+        else:
+            self._qtransform.rotateRadians(radians)
+
+    def translate(self, x=0, y=0):
+        self._transforms.append((1.0, 0.0, 0.0, 1.0, x, y))
+
+    def scale(self, x=1, y=None):
+        if y is None:
+            self._transforms.append((x, 0.0, 0.0, x, 0.0, 0.0))
+        else:
+            self._transforms.append((x, 0.0, 0.0, y, 0.0, 0.0))
+
+
+    def skew(self, x=0, y=0):
+        ## trans_affine(1.0, tan(y), tan(x), 1.0, 0.0, 0.0)
+        self._qtransform.shear(x, y)
+
+    def invert(self):
+        self._qtransform = self._qtransform.inverted()
+
+    def append(self, other):
+        if isinstance(other, Transform):
+            other = other._qtransform
+        self._qtransform *= other
+
+    def prepend(self, other):
+        if isinstance(other, Transform):
+            other = other._qtransform
+        other = QTransform(other)
+        other *= self._qtransform
+        self._qtransform = other
+
+    def transformPoint(self, point):
+        if isinstance(point, (list, tuple)):
+            point = QPointF(*point)
+        elif isinstance(point, Point):
+            point = point._qPoint
+        return self._qtransform.map(point)
+
+    def transformBezierPath(self, path):
+        if isinstance(path, BezierPath):
+            path = BezierPath(path._ctx, path)
+        else:
+            raise NodeBoxError, "Can only transform BezierPaths"
+        path._qpath = self._qtransform.map(path._qpath)
+        return path
