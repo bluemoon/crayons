@@ -1,5 +1,3 @@
-import util
-
 from PIL               import Image
 from types.transform   import Transform
 from types.canvas      import PILCanvas, BezierPath
@@ -8,6 +6,8 @@ from types.color       import Color
 from defaults          import *
 from math              import *
 from aggdraw           import *
+
+import util
 
 class Context:
     def __init__ (self, inputscript=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):
@@ -101,6 +101,68 @@ class Context:
             self.canvas.add(r)
 
         return r
+
+    def arrow(self, x, y, width=100, type=NORMAL, draw=True, **kwargs):
+        """
+        Draws an arrow.
+
+        Draws an arrow at position x, y, with a default width of 100.
+        There are two different types of arrows: NORMAL and trendy FORTYFIVE degrees arrows.
+        When draw=False then the arrow's path is not ended, similar to endpath(draw=False).
+        """
+
+        BezierPath.checkKwargs(kwargs)
+        if type == NORMAL:
+          return self._arrow(x, y, width, draw, **kwargs)
+        elif type == FORTYFIVE:
+          return self._arrow45(x, y, width, draw, **kwargs)
+        else:
+          raise Exception("arrow: available types for arrow() are NORMAL and FORTYFIVE\n")
+
+    def _arrow(self, x, y, width, draw, **kwargs):
+
+        head = width * .4
+        tail = width * .2
+
+        p = self.BezierPath(**kwargs)
+        p.moveto(x, y)
+        p.lineto(x-head, y+head)
+        p.lineto(x-head, y+tail)
+        p.lineto(x-width, y+tail)
+        p.lineto(x-width, y-tail)
+        p.lineto(x-head, y-tail)
+        p.lineto(x-head, y-head)
+        p.lineto(x, y)
+        p.closepath()
+        p.inheritFromContext(kwargs.keys())
+
+        if draw:
+          p.draw()
+
+        return p
+
+    def _arrow45(self, x, y, width, draw, **kwargs):
+
+        head = .3
+        tail = 1 + head
+
+        p = self.BezierPath(**kwargs)
+        p.moveto(x, y)
+        p.lineto(x, y+width*(1-head))
+        p.lineto(x-width*head, y+width)
+        p.lineto(x-width*head, y+width*tail*.4)
+        p.lineto(x-width*tail*.6, y+width)
+        p.lineto(x-width, y+width*tail*.6)
+        p.lineto(x-width*tail*.4, y+width*head)
+        p.lineto(x-width, y+width*head)
+        p.lineto(x-width*(1-head), y)
+        p.lineto(x, y)
+        p.inheritFromContext(kwargs.keys())
+    
+        if draw:
+          p.draw()
+
+        return p
 
     def rectmode(self, mode=None):
         if mode in (self.CORNER, self.CENTER, self.CORNERS):
@@ -234,6 +296,9 @@ class Context:
         self._autoclosepath = close
     
     def rotate(self, *arguments):
+        pass
+
+    def translate(self, *arguments):
         pass
 
     def relmoveto(self, x, y):
@@ -410,3 +475,6 @@ class Context:
         return self.HEIGHT
     def Width(self):
         return self.WIDTH
+
+    def font(self, *arguments):
+        print arugments

@@ -1,0 +1,12 @@
+nodebox compatibility:
+  Shapes: 
+    [x]  rect()
+    [x]  star()
+    [x]  oval()
+    [x]  line()
+    [ ]  arrow()
+  Path:
+    [x]  beginpath()
+    [x]  moveto()
+  Text:
+    [ ]  font()
