@@ -1,7 +1,7 @@
 from pyPaint import *
 
 
-ctx = PyPaintContext(width=300, height=300)
+ctx = Context(width=300, height=300)
 #ctx.size(100, 200)
 #ctx.background(1, 1, 1)
 

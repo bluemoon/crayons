@@ -1,7 +1,7 @@
 from defaults import *
 
-from nb_types.transform import Transform
-from nb_types.new_color     import Color
+from types.transform     import Transform
+from types.new_color     import Color
 
 _STATE_NAMES = {
     '_outputmode':    'outputmode',

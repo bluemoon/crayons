@@ -1,17 +1,17 @@
-from PIL               import Image
-from types.transform   import Transform
-from types.canvas      import PILCanvas, BezierPath
-from types.color       import Color
+from PIL                     import Image
+from paint_types.transform   import Transform
+from paint_types.canvas      import PILCanvas, BezierPath
+from paint_types.color       import Color
 
-from defaults          import *
-from math              import *
-from aggdraw           import *
+from defaults                import *
+from math                    import *
+from aggdraw                 import *
 
 import util
 
 class Context:
-    def __init__ (self, inputscript=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):
-        self.inputscript    = inputscript
+    def __init__ (self, in_script=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):
+        self.inputscript    = in_script
         self.targetfilename = targetfilename
 
         # init internal path container
@@ -77,7 +77,8 @@ class Context:
         self._ns["HEIGHT"] = height
     
     def image(self, path, x, y, width=None, height=None, alpha=1.0, data=None, draw=True, **kwargs):
-        '''Draws a image form path, in x,y and resize it to width, height dimensions.
+        '''
+        Draws a image form path, in x,y and resize it to width, height dimensions.
         '''
         r = self.Image(path, x, y, width, height, alpha, data, **kwargs)
         if draw:

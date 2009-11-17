@@ -1,13 +1,12 @@
 import os
 
-from nb_types.transform import Transform
-from nb_types.paths     import ClippingPath
+from paint_types.transform  import Transform
+from paint_types.paths      import ClippingPath
 
-from PIL    import Image
-from mixins import *
-from util   import *
-from uuid   import uuid4
-
+from PIL      import Image
+from uuid     import uuid4
+from mixins   import *
+from util     import *
 from aggdraw  import *
 from defaults import *
 
@@ -27,11 +26,10 @@ class PathWrap:
 
 
     def getBounds(self, *arguments):
-        print arguments
         return (0, 0, 0, 0)
 
 class PILHelper:
-    def _decToRgba(self, RGBA):
+    def decToRgba(self, RGBA):
         R = int(RGBA[0] * 255)
         G = int(RGBA[1] * 255)
         B = int(RGBA[2] * 255)
@@ -72,16 +70,17 @@ class PILContext:
 class PILCanvas(CanvasMixin):
     def __init__(self, width=None, height=None):
         CanvasMixin.__init__(self, width, height)
+        
         self.canvas      = Image.new("RGB", (width, height), "white")
         self.AGG_canvas  = Draw(self.canvas)
+        self.helper      = PILHelper()
+        self.context     = PILContext()
+
         self.AGG_canvas.setantialias(True)
-        
-        self.context = PILContext()
 
     def show(self, *arguments):
         self.AGG_canvas.flush()
         self.canvas.show()
-
 
     def draw(self, ctx=None):
         if not ctx:
@@ -90,10 +89,9 @@ class PILCanvas(CanvasMixin):
         ## draws things
         for item in self.grobstack:
             if isinstance(item, ClippingPath):
-                ctx.save()
                 deltax, deltay = item.center
-                m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-                ctx.transform(m)
+                #m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
+                #print m
                 self.drawclip(item, ctx)
 
             elif isinstance(item, RestoreCtx):
@@ -103,20 +101,19 @@ class PILCanvas(CanvasMixin):
                     ctx.save()
                     deltax, deltay = item.center
                     #m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
+                    #print m
                     #ctx.transform(m)
                     self.drawpath(item, ctx)
 
                 elif isinstance(item, Text):
-                    ctx.save()
                     x,y = item.metrics[0:2]
                     deltax, deltay = item.center
                     m = item._transform.getMatrixWCenter(deltax, deltay-item.baseline, item._transformmode)
-                    ctx.transform(m)
-                    ctx.translate(item.x, item.y-item.baseline)
+                    #ctx.transform(m)
+                    #ctx.translate(item.x, item.y-item.baseline)
                     self.drawtext(item, ctx)
 
                 elif isinstance(item, Image):
-                    ctx.save()
                     deltax, deltay = item.center
                     m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
                     ctx.transform(m)
@@ -166,6 +163,7 @@ class PILCanvas(CanvasMixin):
     def drawpath(self, path, ctx=None):
         strokeWidth = None
         strokeColor = None
+        ellipse     = False
 
         if not isinstance(path, BezierPath):
             raise Exception("drawpath(): Expecting a BezierPath, got %s" % (path))
@@ -173,30 +171,13 @@ class PILCanvas(CanvasMixin):
         if not ctx:
             ctx = self._context
         
-        if path._strokewidth:
-            ctx.set_line_width(path._strokewidth)
-
-        if path._fillcolor:
-            ctx.set_source_rgba(*path._fillcolor)
-            if path._strokecolor:
-                ctx.set_source_rgba(*path._strokecolor)
-                ctx.stroke()
-            else:
-                ## if there isn't a stroke, use plain fill() to close the path
-                ctx.fill()
-
-        elif path._strokecolor:
-            ## if there's no fill, apply stroke only
-            ctx.set_source_rgba(*path._strokecolor)
-            ctx.stroke()
-            #strokeColor = *path._strokecolor
+        if isinstance(path.path, PathWrap):
+            path.path.initPath()
+            nPath = path.path.path
         else:
-            print _("Warning: Canvas object had no fill or stroke values")
-            
-        path.path.initPath()
-        nPath = path.path.path
+            return
+
         for element in path.data:
-            print element
             cmd    = element[0]
             values = element[1:]
 
@@ -216,25 +197,65 @@ class PILCanvas(CanvasMixin):
                 nPath.rcurveto(*values)
 
             elif cmd == ARC:
-                ctx.arc(*values)
+                nPath.curveto(*values)
 
             elif cmd == CLOSE:
                 nPath.close()
 
             elif cmd == ELLIPSE:
                 x, y, w, h = values
-                ctx.save()
-                ctx.translate (x + w / 2., y + h / 2.)
-                ctx.scale (w / 2., h / 2.)
-                ctx.arc (0., 0., 1., 0., 2 * pi)
-                ctx.restore()
 
+                k = 0.5522847498    
+                nPath.moveto(x, y+h/2)
+                nPath.curveto(x, y+(1-k)*h/2, x+(1-k)*w/2, y, x+w/2, y)
+                nPath.curveto(x+(1+k)*w/2, y, x+w, y+(1-k)*h/2, x+w, y+h/2)
+                nPath.curveto(x+w, y+(1+k)*h/2, x+(1+k)*w/2, y+h,x+w/2, y+h)
+                nPath.curveto(x+(1-k)*w/2, y+h, x, y+(1+k)*h/2, x, y+h/2)
+                nPath.close()
+                
+                ##ctx.translate(x + w / 2., y + h / 2.)
+                ##ctx.scale (w / 2., h / 2.)
+                ##ctx.arc (0., 0., 1., 0., 2 * pi)
+                ##ctx.restore()
             else:
                 raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
+
+        arguments = self.buildPenBrush(path, templateArgs=nPath)
+        self.AGG_canvas.path(*arguments)
         
-        self.AGG_canvas.path(nPath.coords(), nPath, Pen("black"))
         self.AGG_canvas.flush()
 
+    def buildPenBrush(self, path, templateArgs=None):
+        if templateArgs:
+            PathArgs      = [templateArgs]
+        else:
+            PathArgs      = []
+
+        PenArguments  = []
+        PenDict       = {}
+        brush         = None
+
+        if path._fillcolor:
+            (R, G, B, A) = self.helper.decToRgba(path._fillcolor)
+            color = (R, G, B)
+            brush = Brush(color, opacity=A)
+
+        if path._strokecolor:
+            (R, G, B, A) = self.helper.decToRgba(path._strokecolor)
+            PenDict["color"]   = (R, G, B)
+            PenDict["opacity"] = A
+            
+        if path._strokewidth:
+            PenDict["width"] = path._strokewidth
+
+        if PenDict.has_key("color"):
+            PathArgs.append(Pen(**PenDict))
+        if brush:
+            PathArgs.append(brush)
+        
+        
+        arguments = tuple(PathArgs)
+        return arguments
 
 class BezierPath(Grob, TransformMixin, ColorMixin):
     stateAttributes = ('_fillcolor', '_strokecolor', '_strokewidth', '_transform', '_transformmode')
@@ -337,16 +358,41 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
         self.linewidth = width
 
     def line(self, x1, y1, x2, y2):
-        print "called?"
         self.moveto(x1, y1)
-        self.rlineto(x2, y2)
+        self.lineto(x2, y2)
 
     def _get_bounds(self):
         '''
         Returns the path's bounding box. Note that this doesn't
         take transforms into account.
         '''
-        return self._path.getBounds(self.data)
+        coordinates = []
+        X_Set = []
+        Y_Set = []
+
+        for data in self.data:
+            if len(data.getXY()) > 0:
+                coordinates.append(data.getXY())
+
+        while coordinates:
+            Popped = coordinates.pop()
+            if len(Popped) == 2:
+                X_Set.append(Popped[0])
+                Y_Set.append(Popped[1])
+            else:
+                pass
+
+        if len(X_Set) and len(Y_Set):
+            max_X = max(X_Set)
+            max_Y = max(Y_Set)
+
+            min_X = min(X_Set)
+            min_Y = min(Y_Set)
+
+            return (min_X, min_Y, max_X, max_Y)
+        else:
+            return (0, 0, 0, 0)
+
 
     bounds = property(_get_bounds)
 
@@ -519,3 +565,6 @@ class PathElement:
 
     def getXY(self):
         return self.values
+
+
+
