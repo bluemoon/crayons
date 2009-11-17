@@ -1,71 +1,17 @@
-import os
-
-from paint_types.transform  import Transform
-from paint_types.paths      import ClippingPath
+from pypaint.interfaces.PIL.helper  import PILHelper
+from pypaint.interfaces.PIL.context import PILContext
+from pypaint.interfaces.PIL.path    import PathWrap
+from pypaint.types.transform        import Transform
+from pypaint.types.paths            import ClippingPath
+from pypaint.utils.defaults         import *
+from pypaint.types.mixins           import *
+from pypaint.utils.util             import *
 
 from PIL      import Image
 from uuid     import uuid4
-from mixins   import *
-from util     import *
 from aggdraw  import *
-from defaults import *
 
-class PathWrap:
-    def __init__(self):
-        self.path = None
-
-    def initPath(self):
-        self.path = Path()
-
-    def resetPath(self):
-        self.path = Path()
-
-    def _getPath(self):
-        return self.path
-    path = property(_getPath)
-
-
-    def getBounds(self, *arguments):
-        return (0, 0, 0, 0)
-
-class PILHelper:
-    def decToRgba(self, RGBA):
-        R = int(RGBA[0] * 255)
-        G = int(RGBA[1] * 255)
-        B = int(RGBA[2] * 255)
-        A = int(RGBA[3] * 255)
-        return (R, G, B, A)
-
-class PILContext:
-    def __init__(self):
-        pass
-
-    def save(self, *arguments):
-        pass
-    def restore(self, *arguments):
-        pass
-    def show(self, *arguments):
-        pass
-
-    def set_line_width(self, *arguments):
-        pass
-    def set_source_rgba(self, *arguments):
-        pass
-    def fill(self, *arguments):
-        pass
-
-    ## Paths
-    def move_to(self, *arguments):
-        pass
-    def line_to(self, *arguments):
-        pass
-    def rel_line_to(self, *arguments):
-        pass
-    def close_path(self, *arguments):
-        pass
-    def finalize_path(self, *arguments):
-        pass
-    
+import os
 
 class PILCanvas(CanvasMixin):
     def __init__(self, width=None, height=None):

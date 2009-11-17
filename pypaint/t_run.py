@@ -1,4 +1,4 @@
-from pyPaint import *
+from pypaint import *
 
 
 ctx = Context(width=300, height=300)

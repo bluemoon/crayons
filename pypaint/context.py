@@ -1,13 +1,14 @@
-from PIL                     import Image
-from paint_types.transform   import Transform
-from paint_types.canvas      import PILCanvas, BezierPath
-from paint_types.color       import Color
+from PIL                             import Image
+from pypaint.types.transform         import Transform
+from pypaint.types.canvas            import BezierPath
+from pypaint.types.canvas            import PILCanvas
+from pypaint.types.color             import Color
+from pypaint.utils                   import util
+from pypaint.utils.defaults          import *
 
-from defaults                import *
-from math                    import *
-from aggdraw                 import *
+from math        import *
+from aggdraw     import *
 
-import util
 
 class Context:
     def __init__ (self, in_script=None, targetfilename=None, canvas=None, gtkmode=False, ns=None, width=None, height=None):

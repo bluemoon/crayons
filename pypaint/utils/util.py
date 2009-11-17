@@ -1,12 +1,11 @@
-from math   import floor
-from glob   import glob
-from random import choice
-
 import os
 import string
 import random as rnd
 
-from types.new_color import Color
+from math   import floor
+from glob   import glob
+
+#from pypaint.types.color import Color
 
 def rgb_to_hsl(r, g, b):
     '''Converts RGB values to the HSL colourspace. '''

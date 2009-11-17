@@ -1,7 +1,6 @@
-from defaults import *
-
-from types.transform     import Transform
-from types.new_color     import Color
+from pypaint.utils.defaults      import *
+from pypaint.types.transform     import Transform
+from pypaint.types.color         import Color
 
 _STATE_NAMES = {
     '_outputmode':    'outputmode',

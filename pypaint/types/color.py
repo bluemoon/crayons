@@ -1,9 +1,4 @@
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "nb_types")))
-
-import util
+from pypaint.utils import util
 
 class Color(object):
     '''

@@ -12,6 +12,8 @@ CMYK = "cmyk"
 CENTER = "center"
 CORNER = "corner"
 
+NORMAL=1
+FORTYFIVE=2
 
 MOVETO    = "moveto"
 RMOVETO   = "rmoveto"

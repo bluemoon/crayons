@@ -1,13 +1,8 @@
-import sys
-import os
+from pypaint.context         import Context
+from pypaint.types.canvas    import BezierPath
+from pypaint.utils.p_random  import random
 
-sys.path.append(os.getcwd()) 
-
-from pyPaint import PyPaintContext as Context
-from nb_types.canvas import BezierPath
-from math    import pi, sin, cos, radians
-
-from util_random import random
+from math import pi, sin, cos, radians
 
 ctx = Context(width=600, height=600)
 
@@ -17,6 +12,7 @@ class Tendril:
         A new sinewy tendril at location x and y.
         Its segment width will gradually become smaller as it grows.
         """
+
         self.x = x
         self.y = y
         self.width = width
@@ -83,16 +79,17 @@ class Plant:
             tendril.draw(path)
 
         return path
- 
-ctx.background(0.12, 0.12, 0.06)
-ctx.nofill()
-ctx.stroke(1, 0.5)
-ctx.strokewidth(0.5)
- 
-plant = Plant(300, 300, tendrils=50)
-for i in range(20): 
-    plant.grow(curl=5.0, step=0.01)
- 
-plant.draw()
 
-ctx.save('')
+
+if __name__ == "__main__":
+    ctx.background(0.12, 0.12, 0.06)
+    ctx.nofill()
+    ctx.stroke(1, 0.5)
+    ctx.strokewidth(0.5)
+ 
+    plant = Plant(300, 300, tendrils=50)
+    for i in range(20): 
+        plant.grow(curl=5.0, step=0.01)
+ 
+    plant.draw()
+    ctx.save('')
