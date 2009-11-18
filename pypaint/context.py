@@ -296,12 +296,44 @@ class Context:
 
     def autoclosepath(self, close=True):
         self._autoclosepath = close
-    
-    def rotate(self, *arguments):
-        pass
 
-    def translate(self, *arguments):
-        pass
+    def transform(self, mode=None): # Mode can be CENTER or CORNER
+        if mode:
+            self._transformmode = mode
+        return self._transformmode
+
+    def translate(self, x, y):
+        self._transform.translate(x,y)
+
+    def rotate(self, degrees=0, radians=0):
+        if radians:
+            angle = radians
+        else:
+            angle = (degrees * pi)/180.0
+
+        self._transform.rotate(-angle)
+
+    def scale(self, x=1, y=None):
+        if not y:
+            y = x
+        if x == 0 or x == -1:
+            # Cairo borks on zero values
+            x = 1
+        if y == 0 or y == -1:
+            y = 1
+        self._transform.scale(x,y)
+
+    def skew(self, x=1, y=0):
+        self._transform.skew(x,y)
+
+    def push(self):
+        self.transform_stack.append(self._transform.copy())
+
+    def pop(self):
+        self._transform = self.transform_stack.pop()
+
+    def reset(self):
+        self._transform = Transform()
 
     def relmoveto(self, x, y):
         '''Move relatively to the last point.'''

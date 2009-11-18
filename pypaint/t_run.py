@@ -1,4 +1,4 @@
-from pypaint import *
+from pypaint.context import *
 
 
 ctx = Context(width=300, height=300)
@@ -16,5 +16,10 @@ ctx.beginpath()
 ctx.curveto(0, 60, 40, 100, 100, 100)
 ctx.endpath()
 
-ctx.star(100, 100)
+ 	
+ctx.fill(0.2)
+ctx.rotate(degrees=20)
+ctx.rect(150, 150, 20, 20)
+
+#ctx.star(100, 100)
 ctx.save('temp.png')

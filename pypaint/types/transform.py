@@ -1,4 +1,7 @@
 from math import *
+import numpy as np
+
+TRANSFORMS = ['translate', 'scale', 'rotate', 'skew', 'push', 'pop']
 
 class Matrix:
     matrix = None
@@ -9,7 +12,8 @@ class Matrix:
     def translate(self, draw, x, y):
         self.matrix = (1.0, 0.0, 0.0, 1.0, x, y)
         #self.transform(draw)
-    
+
+
     #def transform(self, draw):
     #    draw.settransform(self.matrix)
         
@@ -91,7 +95,7 @@ class Transform(object):
     def __iter__(self):
         for value in self.matrix:
             yield value
-
+    """
     def rotate(self, degrees=0, radians=0):
         ## trans_affine(cos(a), sin(a), -sin(a), cos(a), 0.0, 0.0)
         if degrees:
@@ -111,14 +115,20 @@ class Transform(object):
             self._transforms.append((x, 0.0, 0.0, y, 0.0, 0.0))
 
     def skew(self, x=0, y=0):
-        ## trans_affine(1.0, tan(y), tan(x), 1.0, 0.0, 0.0)
-        pass
+        self._transforms.append((1.0, tan(y), tan(x), 1.0, 0.0, 0.0))
+    """
+    def transform_point(self, x, y, matrix):
+        (sx, shy, shx, sy, tx, ty) = matrix.tolist()
+        deltax = x * sx  +  y * shx + tx
+        deltay = x * shy +  y * sy  + ty
+        return (x-deltax, y-deltay)
 
     def getMatrixWCenter(self, x, y, mode):
         centerx = x
         centery = y
         m_archived = []
         
+        m = np.array([1.0, 0.0, 0.0,  1.0, 0.0, 0.0])
         for trans in self.stack: 
             if isinstance(trans, tuple) and trans[0] in TRANSFORMS:
                 ## parse transform command
@@ -129,26 +139,32 @@ class Transform(object):
                     xt = args[0]
                     yt = args[1]
 
-                    self.translate(xt, yt)
+                    m *= np.array([1.0, 0.0, 0.0, 1.0, x, y])
 
                 elif cmd == 'rotate':
-                    #if mode == 'corner':                        
+                    if mode == 'corner':                        
                         # apply existing transform to cornerpoint
-                    #    deltax, deltay = m.transform_point(0,0)
-                    #    a = args[0]
+                        deltax, deltay = m.transform_point(0, 0)
+                        a = args[0]
 
-                    #    ct = cos(a)
-                    #    st = sin(a)
+                        ct = cos(a)
+                        st = sin(a)
                         #m *= cairo.Matrix(ct, st, -st, ct, deltax - (ct*deltax) + (st*deltay),deltay-(st*deltax)-(ct*deltay)) 
 
                     if mode == 'center':
                         # apply existing transform to centerpoint
-                        deltax, deltay = m.transform_point(centerx, centery)
-                        a = args[0]
-                        
-                        ct = cos(a)
-                        st = sin(a)
-                        m = Matrix(ct, st, -st, ct,deltax-(ct*deltax)+(st*deltay),deltay-(st*deltax)-(ct*deltay)) 
+                        (sx, shy, shx, sy, tx, ty) = m.tolist()
+
+                        ## sx(1.0), shy(0.0), shx(0.0), sy(1.0), tx(0.0), ty(0.0)
+
+
+                        radians = args[0]
+                        degrees = radians ##* (180/pi)
+
+                        m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), 0, 0])#deltax - (ca * deltax) + (sa * deltay), deltay - (sa * deltax) - (ca * deltay)])
+                        (deltax, deltay) = self.transform_point(centerx, centery, m)                        
+                        #print (sx, shy, shx, sy, tx, ty)
+                        m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), deltax, deltay])
 
                 elif cmd == 'scale':
                     if mode == 'corner':
@@ -188,12 +204,13 @@ class Transform(object):
                         t *= cairo.Matrix(1,y,0,1,0,0)
                         t *= m2
                         m = t
+
                 elif cmd == 'push':
                     m_archived.append(m)
                 elif cmd == 'pop':
                     m = m_archived.pop()
-
-        return self._transforms       
+        
+        return m.tolist()
 
     def get_matrix(self):
         '''

@@ -2,27 +2,29 @@ from math import pi, sin, cos, radians
 _range = range
 
 TWOPI = pi * 2
-
-# Else, use the native python
-# calculation of supershapes.
-def supercalc(m, n1, n2, n3, phi):
-    a = 1.0
-    b = 1.0
+try:
+    from pypaint.cSuperformula import supercalc
+except:
+    # Else, use the native python
+    # calculation of supershapes.
+    def supercalc(m, n1, n2, n3, phi):
+        a = 1.0
+        b = 1.0
+        
+        t1 = cos(m * phi / 4) / a
+        t1 = abs(t1)
+        t1 = pow(t1, n2)
     
-    t1 = cos(m * phi / 4) / a
-    t1 = abs(t1)
-    t1 = pow(t1, n2)
-    
-    t2 = sin(m * phi / 4) / b
-    t2 = abs(t2)
-    t2 = pow(t2, n3)
-    
-    r = pow(t1 + t2, 1 / n1)
-    if abs(r) == 0:
-        return (0,0)
-    else:
-        r = 1 / r
-        return (r * cos(phi), r * sin(phi))
+        t2 = sin(m * phi / 4) / b
+        t2 = abs(t2)
+        t2 = pow(t2, n3)
+        
+        r = pow(t1 + t2, 1 / n1)
+        if abs(r) == 0:
+            return (0,0)
+        else:
+            r = 1 / r
+            return (r * cos(phi), r * sin(phi))
 
 def path(ctx, x, y, w, h, m, n1, n2, n3, points=1000, percentage=1.0, range=TWOPI):
     first = True

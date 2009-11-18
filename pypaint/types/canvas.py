@@ -22,7 +22,7 @@ class PILCanvas(CanvasMixin):
         self.helper      = PILHelper()
         self.context     = PILContext()
 
-        self.AGG_canvas.setantialias(True)
+        #self.AGG_canvas.setantialias(True)
 
     def show(self, *arguments):
         self.AGG_canvas.flush()
@@ -36,19 +36,16 @@ class PILCanvas(CanvasMixin):
         for item in self.grobstack:
             if isinstance(item, ClippingPath):
                 deltax, deltay = item.center
-                #m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-                #print m
+                m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
                 self.drawclip(item, ctx)
 
             elif isinstance(item, RestoreCtx):
                 ctx.restore()
             else:
                 if isinstance(item, BezierPath):
-                    ctx.save()
                     deltax, deltay = item.center
-                    #m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-                    #print m
-                    #ctx.transform(m)
+                    m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
+                    self.AGG_canvas.settransform(tuple(m))
                     self.drawpath(item, ctx)
 
                 elif isinstance(item, Text):
@@ -312,33 +309,81 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
         Returns the path's bounding box. Note that this doesn't
         take transforms into account.
         '''
-        coordinates = []
-        X_Set = []
-        Y_Set = []
 
-        for data in self.data:
-            if len(data.getXY()) > 0:
-                coordinates.append(data.getXY())
+        X, Y  = 0, 0
 
-        while coordinates:
-            Popped = coordinates.pop()
-            if len(Popped) == 2:
-                X_Set.append(Popped[0])
-                Y_Set.append(Popped[1])
-            else:
-                pass
+        X_set = []
+        Y_set = []
 
-        if len(X_Set) and len(Y_Set):
-            max_X = max(X_Set)
-            max_Y = max(Y_Set)
+        for element in self.data:
+            cmd    = element[0]
+            values = element[1:]
 
-            min_X = min(X_Set)
-            min_Y = min(Y_Set)
+            if cmd == MOVETO:
+                X = values[0]
+                Y = values[1]
 
+            elif cmd == LINETO:
+                X1, Y1 = values
+
+                X_set.append(X)
+                Y_set.append(Y)
+                X_set.append(X1)
+                Y_set.append(Y1)
+
+            elif cmd == CURVETO:
+                X1, Y1, X2, Y2, X3, Y3 = values
+
+                X_set.append(X)
+                Y_set.append(Y)
+                X_set.append(X1)
+                Y_set.append(Y1)
+                X_set.append(X2)
+                Y_set.append(Y2)
+                X_set.append(X3)
+                Y_set.append(Y3)
+
+
+            elif cmd == RLINETO:
+                X1, Y1 = values
+                X_set.append(X)
+                Y_set.append(Y)
+                X_set.append(X+X1)
+                Y_set.append(Y+Y1)
+
+
+            elif cmd == RCURVETO:
+                X1, Y1, X2, Y2, X3, Y3 = values
+                X_set.append(X)
+                Y_set.append(Y)
+                X_set.append(X+X1)
+                Y_set.append(Y+Y1)
+                X_set.append(X+X2)
+                Y_set.append(Y+Y2)
+                X_set.append(X+X3)
+                Y_set.append(Y+Y3)
+
+            elif cmd == ELLIPSE:
+                X, Y, W, H = values
+                X_set.append(X)
+                Y_set.append(Y)
+                X_set.append(W)
+                Y_set.append(H)
+
+        
+
+        if len(X_set) and len(Y_set):
+            max_X = max(X_set)
+            max_Y = max(Y_set)
+
+            min_X = min(X_set)
+            min_Y = min(Y_set)
+
+            #print (min_X, min_Y, max_X, max_Y)
             return (min_X, min_Y, max_X, max_Y)
         else:
             return (0, 0, 0, 0)
-
+        
 
     bounds = property(_get_bounds)
 
@@ -362,7 +407,7 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
     def _get_transform(self):
         trans = self._transform.copy()
         if (self._transformmode == CENTER):
-            (x, y), (w, h) = self.bounds
+            (x, y, w, h) = self.bounds
             deltax = x+w/2
             deltay = y+h/2
 

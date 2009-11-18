@@ -1,272 +1,9 @@
-Themes = {
-    "superfolia":
-        ("grass weed moss root natural organic deep dark",
-         [(0.57, 0.57, 0.44, 1.00),
-          (0.29, 0.27, 0.08, 1.00),
-          (0.16, 0.16, 0.05, 1.00),
-          (0.00, 0.00, 0.00, 1.00), 
-         ]),
+import os
+from pypaint.library.color_data  import *
+from pypaint.types.color         import Color
 
-    "evolution":
-        ("sea underwater intelligent subtle soft",
-         [(0.71, 0.75, 0.78, 1.00),
-          (0.26, 0.32, 0.37, 1.00),
-          (0.27, 0.49, 0.64, 1.00),
-          (0.59, 0.59, 0.51, 1.00),
-         ]),
 
-    "nodebox":
-        ("nebula blacklight starlight night magic deep",
-         [(0.45, 0.63, 0.84, 1.00),
-          (0.00, 0.50, 1.00, 1.00),
-          (0.04, 0.19, 0.36, 1.00),
-          (0.18, 0.10, 0.18, 1.00),
-          (1.00, 0.00, 0.50, 1.00),
-         ]),
-
-    "research":
-        ("garden thistle lily orchid calm pleasant",
-         [(0.63, 0.69, 0.45, 1.00),
-          (0.20, 0.24, 0.08, 1.00),
-          (0.12, 0.13, 0.07, 1.00),
-          (0.50, 0.67, 0.02, 1.00),
-          (1.00, 0.00, 0.50, 1.00),
-         ]),
-
-    "sunrise":
-        ("morning sky toast canyon fresh bright",
-         [(0.47, 0.54, 0.59, 1.00),
-          (0.30, 0.39, 0.48, 1.00),
-          (0.31, 0.23, 0.22, 1.00),
-          (1.00, 0.56, 0.05, 1.00),
-          (0.05, 0.05, 0.00, 1.00),
-         ]),
-
-    "ingsoc":
-        ("russia communism fascism war 1984 cold rigid strong",
-         [(0.90, 0.00, 0.15, 1.00),
-          (0.15, 0.15, 0.15, 1.00),
-          (0.25, 0.25, 0.25, 1.00),
-          (0.75, 0.75, 0.75, 1.00),
-         ]),
-
-    "factory":
-        ("bulldozer subway transport machine engine stale rigid",
-         [(0.38, 0.37, 0.30, 1.00),
-          (0.30, 0.29, 0.23, 1.00),
-          (0.19, 0.18, 0.13, 1.00),
-          (0.84, 0.60, 0.21, 1.00),
-         ]),
-
-    "princess":
-        ("marimekko cosmopolitan socks girl disney fairy",
-         [(0.25, 0.00, 0.25, 1.00),
-          (0.75, 0.00, 0.35, 1.00),
-          (0.20, 0.20, 0.20, 1.00),
-          (0.85, 0.85, 0.75, 1.00),
-         ]),
-        
-    "jellyfish":
-        ("underwater pool alien icecave cold deep",
-         [(0.05, 0.10, 0.15, 1.00),
-          (0.10, 0.20, 0.25, 1.00),
-          (0.25, 0.50, 0.60, 1.00),
-          (0.45, 0.80, 0.90, 1.00)
-        ]),
-
-    "sharzad":
-        ("desert sand arab gold warm mysterious graceful",
-         [(0.22, 0.13, 0.08, 1.00),
-          (0.35, 0.25, 0.15, 1.00),
-          (0.80, 0.70, 0.55, 1.00),
-          (1.00, 0.80, 0.20, 1.00),
-          (0.83, 1.00, 1.00, 1.00)
-        ]),
-
-    "atlas":
-        ("jungle hill biosphere lush optimistic",
-         [(0.20, 0.15, 0.10, 1.00),
-          (0.40, 0.30, 0.20, 1.00),
-          (0.73, 0.77, 0.20, 1.00),          
-          (0.20, 0.22, 0.24, 1.00), 
-          (0.25, 0.75, 0.85, 1.00),
-        ])
-        
-}
-
-named_hues = {
-    "red"         : 0.0   / 360,
-    "orange"      : 30.0  / 360,
-    "yellow"      : 60.0  / 360,
-    "lime"        : 90.0  / 360,
-    "green"       : 120.0 / 360,
-    "teal"        : 150.0 / 360,
-    "cyan"        : 180.0 / 360,
-    "azure"       : 210.0 / 360,
-    "blue"        : 240.0 / 360,
-    "indigo"      : 270.0 / 360,
-    "purple"      : 300.0 / 360,
-    "pink"        : 330.0 / 360,
-}
-
-primary_hues = ["red", "orange", "yellow", "green", "blue", "purple", "pink"]
-primary_and_secondary_hues = [
-    "red", "orange", "yellow", "lime", "green", "teal", 
-    "cyan", "azure", "blue", "indigo", "purple", "pink"
-]
-
-### NAMED COLORS #####################################################################################
-# HTML named colors.
-named_colors = {
-                
-    "lightpink"            : (1.00, 0.71, 0.76),
-    "pink"                 : (1.00, 0.75, 0.80),
-    "crimson"              : (0.86, 0.08, 0.24),
-    "lavenderblush"        : (1.00, 0.94, 0.96),
-    "palevioletred"        : (0.86, 0.44, 0.58),
-    "hotpink"              : (1.00, 0.41, 0.71),
-    "deeppink"             : (1.00, 0.08, 0.58),
-    "mediumvioletred"      : (0.78, 0.08, 0.52),
-    "orchid"               : (0.85, 0.44, 0.84),
-    "thistle"              : (0.85, 0.75, 0.85),
-    "plum"                 : (0.87, 0.63, 0.87),
-    "violet"               : (0.93, 0.51, 0.93),
-    "fuchsia"              : (1.00, 0.00, 1.00),
-    "darkmagenta"          : (0.55, 0.00, 0.55),
-    "purple"               : (0.50, 0.00, 0.50),
-    "mediumorchid"         : (0.73, 0.33, 0.83),
-    "darkviolet"           : (0.58, 0.00, 0.83),
-    "darkorchid"           : (0.60, 0.20, 0.80),
-    "indigo"               : (0.29, 0.00, 0.51),
-    "blueviolet"           : (0.54, 0.17, 0.89),
-    "mediumpurple"         : (0.58, 0.44, 0.86),
-    "mediumslateblue"      : (0.48, 0.41, 0.93),
-    "slateblue"            : (0.42, 0.35, 0.80),
-    "darkslateblue"        : (0.28, 0.24, 0.55),
-    "ghostwhite"           : (0.97, 0.97, 1.00),
-    "lavender"             : (0.90, 0.90, 0.98),
-    "blue"                 : (0.00, 0.00, 1.00),
-    "mediumblue"           : (0.00, 0.00, 0.80),
-    "darkblue"             : (0.00, 0.00, 0.55),
-    "navy"                 : (0.00, 0.00, 0.50),
-    "midnightblue"         : (0.10, 0.10, 0.44),
-    "royalblue"            : (0.25, 0.41, 0.88),
-    "cornflowerblue"       : (0.39, 0.58, 0.93),
-    "lightsteelblue"       : (0.69, 0.77, 0.87),
-    "lightslategray"       : (0.47, 0.53, 0.60),
-    "slategray"            : (0.44, 0.50, 0.56),
-    "dodgerblue"           : (0.12, 0.56, 1.00),
-    "aliceblue"            : (0.94, 0.97, 1.00),
-    "steelblue"            : (0.27, 0.51, 0.71),
-    "lightskyblue"         : (0.53, 0.81, 0.98),
-    "skyblue"              : (0.53, 0.81, 0.92),
-    "deepskyblue"          : (0.00, 0.75, 1.00),
-    "lightblue"            : (0.68, 0.85, 0.90),
-    "powderblue"           : (0.69, 0.88, 0.90),
-    "cadetblue"            : (0.37, 0.62, 0.63),
-    "darkturquoise"        : (0.00, 0.81, 0.82),
-    "azure"                : (0.94, 1.00, 1.00),
-    "lightcyan"            : (0.88, 1.00, 1.00),
-    "paleturquoise"        : (0.69, 0.93, 0.93),
-    "aqua"                 : (0.00, 1.00, 1.00),
-    "darkcyan"             : (0.00, 0.55, 0.55),
-    "teal"                 : (0.00, 0.50, 0.50),
-    "darkslategray"        : (0.18, 0.31, 0.31),
-    "mediumturquoise"      : (0.28, 0.82, 0.80),
-    "lightseagreen"        : (0.13, 0.70, 0.67),
-    "turquoise"            : (0.25, 0.88, 0.82),
-    "aquamarine"           : (0.50, 1.00, 0.83),
-    "mediumaquamarine"     : (0.40, 0.80, 0.67),
-    "mediumspringgreen"    : (0.00, 0.98, 0.60),
-    "mintcream"            : (0.96, 1.00, 0.98),
-    "springgreen"          : (0.00, 1.00, 0.50),
-    "mediumseagreen"       : (0.24, 0.70, 0.44),
-    "seagreen"             : (0.18, 0.55, 0.34),
-    "honeydew"             : (0.94, 1.00, 0.94),
-    "darkseagreen"         : (0.56, 0.74, 0.56),
-    "palegreen"            : (0.60, 0.98, 0.60),
-    "lightgreen"           : (0.56, 0.93, 0.56),
-    "limegreen"            : (0.20, 0.80, 0.20),
-    "lime"                 : (0.00, 1.00, 0.00),
-    "forestgreen"          : (0.13, 0.55, 0.13),
-    "green"                : (0.00, 0.50, 0.00),
-    "darkgreen"            : (0.00, 0.39, 0.00),
-    "lawngreen"            : (0.49, 0.99, 0.00),
-    "chartreuse"           : (0.50, 1.00, 0.00),
-    "greenyellow"          : (0.68, 1.00, 0.18),
-    "darkolivegreen"       : (0.33, 0.42, 0.18),
-    "yellowgreen"          : (0.60, 0.80, 0.20),
-    "olivedrab"            : (0.42, 0.56, 0.14),
-    "ivory"                : (1.00, 1.00, 0.94),
-    "beige"                : (0.96, 0.96, 0.86),
-    "lightyellow"          : (1.00, 1.00, 0.88),
-    "lightgoldenrodyellow" : (0.98, 0.98, 0.82),
-    "yellow"               : (1.00, 1.00, 0.00),
-    "olive"                : (0.50, 0.50, 0.00),
-    "darkkhaki"            : (0.74, 0.72, 0.42),
-    "palegoldenrod"        : (0.93, 0.91, 0.67),
-    "lemonchiffon"         : (1.00, 0.98, 0.80),
-    "khaki"                : (0.94, 0.90, 0.55),
-    "gold"                 : (1.00, 0.84, 0.00),
-    "cornsilk"             : (1.00, 0.97, 0.86),
-    "goldenrod"            : (0.85, 0.65, 0.13),
-    "darkgoldenrod"        : (0.72, 0.53, 0.04),
-    "floralwhite"          : (1.00, 0.98, 0.94),
-    "oldlace"              : (0.99, 0.96, 0.90),
-    "wheat"                : (0.96, 0.87, 0.07),
-    "orange"               : (1.00, 0.65, 0.00),
-    "moccasin"             : (1.00, 0.89, 0.71),
-    "papayawhip"           : (1.00, 0.94, 0.84),
-    "blanchedalmond"       : (1.00, 0.92, 0.80),
-    "navajowhite"          : (1.00, 0.87, 0.68),
-    "antiquewhite"         : (0.98, 0.92, 0.84),
-    "tan"                  : (0.82, 0.71, 0.55),
-    "burlywood"            : (0.87, 0.72, 0.53),
-    "darkorange"           : (1.00, 0.55, 0.00),
-    "bisque"               : (1.00, 0.89, 0.77),
-    "linen"                : (0.98, 0.94, 0.90),
-    "peru"                 : (0.80, 0.52, 0.25),
-    "peachpuff"            : (1.00, 0.85, 0.73),
-    "sandybrown"           : (0.96, 0.64, 0.38),
-    "chocolate"            : (0.82, 0.41, 0.12),
-    "saddlebrown"          : (0.55, 0.27, 0.07),
-    "seashell"             : (1.00, 0.96, 0.93),
-    "sienna"               : (0.63, 0.32, 0.18),
-    "lightsalmon"          : (1.00, 0.63, 0.48),
-    "coral"                : (1.00, 0.50, 0.31),
-    "orangered"            : (1.00, 0.27, 0.00),
-    "darksalmon"           : (0.91, 0.59, 0.48),
-    "tomato"               : (1.00, 0.39, 0.28),
-    "salmon"               : (0.98, 0.50, 0.45),
-    "mistyrose"            : (1.00, 0.89, 0.88),
-    "lightcoral"           : (0.94, 0.50, 0.50),
-    "snow"                 : (1.00, 0.98, 0.98),
-    "rosybrown"            : (0.74, 0.56, 0.56),
-    "indianred"            : (0.80, 0.36, 0.36),
-    "red"                  : (1.00, 0.00, 0.00),
-    "brown"                : (0.65, 0.16, 0.16),
-    "firebrick"            : (0.70, 0.13, 0.13),
-    "darkred"              : (0.55, 0.00, 0.00),
-    "maroon"               : (0.50, 0.00, 0.00),
-    "white"                : (1.00, 1.00, 1.00),
-    "whitesmoke"           : (0.96, 0.96, 0.96),
-    "gainsboro"            : (0.86, 0.86, 0.86),
-    "lightgrey"            : (0.83, 0.83, 0.83),
-    "silver"               : (0.75, 0.75, 0.75),
-    "darkgray"             : (0.66, 0.66, 0.66),
-    "gray"                 : (0.50, 0.50, 0.50),
-    "grey"                 : (0.50, 0.50, 0.50),
-    "dimgray"              : (0.41, 0.41, 0.41),
-    "dimgrey"              : (0.41, 0.41, 0.41),
-    "black"                : (0.00, 0.00, 0.00),
-    "cyan"                 : (0.00, 0.68, 0.94),
-    
-    "transparent"          : (0.00, 0.00, 0.00, 0.00),
-    "bark"                 : (0.25, 0.19, 0.13),
-
-}
-
-from nb_types.new_color import Color
+_range = range
 
 class ColorPalette(Color):
     def darken(self, step=0.1):
@@ -296,9 +33,7 @@ class ColorPalette(Color):
     def rotate_rgb(self, angle=180):
         h = (self.h + 1.0*angle/360)%1
         return Color(h, self.s, self.brightness, self.a, mode="hsb", name="")
-        def rotate_rgb(self, angle=180):
-        h = (self.h + 1.0*angle/360)%1
-        return Color(h, self.s, self.brightness, self.a, mode="hsb", name="")
+    
     
     def rotate_ryb(self, angle=180):
 
@@ -508,6 +243,7 @@ class ColorPalette(Color):
 def color(*args, **kwargs):
     return Color(*args, **kwargs)
 
+_list = [].__class__
 ### COLOR LIST #######################################################################################
 class ColorList(_list):
     def __init__(self, *args, **kwargs):
@@ -538,10 +274,8 @@ class ColorList(_list):
         for arg in args:
             
             # From a Color object.
-            if arg.__class__ == Color:
-                self.append(arg)
-            if arg.__class__ == BaseColor:
-                self.append(color(arg.r, arg.g, arg.b, mode="rgb"))
+
+            self.append(color(arg.r, arg.g, arg.b, mode="rgb"))
                 
             # From a Web.KulerTheme or Web.ColrTheme object.
             try:
@@ -2645,208 +2379,12 @@ def morguefile(query, n=10, top=10):
 #a.length = 10
 #a.swatch(400,0)
 
-#### GRADIENT FILLS AND SHADOWS ######################################################################
-ZOOM_SHADOWS = False
-_shadow = None
-class shadow(Grob):
-    
-    def __init__(self, dx=10, dy=10, alpha=0.25, blur=4.0, clr=None):
-        
-        """ Sets the dropshadow for all onscreen elements.
-
-        Both the fill and stroke of a path get a dropshadow.
-        
-        """
-        
-        Grob.__init__(self, _ctx)
-        if clr == None: 
-            clr = color(0, 0, 0, alpha, mode="rgb")
-        self.dx = dx
-        self.dy = dy
-        self.blur = blur
-        self.clr = clr.copy()
-        self.clr.alpha = alpha
-        self._shadow = NSShadow.alloc().init()
-        self._shadow.setShadowOffset_((dx, -dy))
-        self._shadow.setShadowColor_(clr._rgb)
-        self._shadow.setShadowBlurRadius_(blur)
-        self.draw()
-        
-        global _shadow
-        _shadow = self
-        
-    def _draw(self):
-        
-        try:
-            # The shadow offset is not affected by transformations.
-            # With zoom=True, we respect the current zoom level in NodeBox.
-            # However: exported artwork will now use the current zoom level too.
-            if ZOOM_SHADOWS == True:
-                from AppKit import NSDocumentController
-                doc = NSDocumentController.sharedDocumentController().currentDocument()
-                z = doc.currentView.zoom
-                self._shadow.setShadowOffset_((self.dx*z, -self.dy*z))
-        except:
-            pass
-        self._shadow.set()
-        
-def noshadow():
-    shadow(alpha=0)
-
-class gradientpath(Grob):
-    
-    def __init__(self, path, clr1, clr2, type="radial", dx=0, dy=0, spread=1.0, angle=0, alpha=1.0):
-        
-        """ Fills a path with a smooth gradient between two colors.
-        
-        Creates a Core Image gradient and clips it to the given path.
-        The type can be radial or linear.
-        The spread is the distance between the two colors (0.0-1.0 or absolute).
-        The angle is useful for linear gradients, setting it to 90 degrees
-        creates a horizontal instead of a vertical gradient.
-        
-        The gradient is in RGB color.
-        If shadows are being used, it is rendered in a clipping area 
-        with a background that is the average of the two gradient colors
-        (we need a fill to render a shadow).
-        You can tweak this background's opacity with the alpha parameter.
-        
-        """
-        
-        self.path = path
-        self.path.inheritFromContext()
-        self.path.fillcolor = colorlist(clr1, clr2).average
-        self.path.fillcolor.alpha *= alpha
-        
-        self.clr1 = clr1
-        self.clr2 = clr2
-        
-        self.type = type
-        self.dx = dx
-        self.dy = dy
-        self.spread = spread
-        self.angle = angle
-
-        _ctx.canvas.append(self)
-
-        if _shadow: 
-            self._shadow_alpha = _shadow.clr.alpha
-        else:
-            self._shadow_alpha = 0
-
-    def _draw(self):
-
-        global _shadow
-
-        _save()
-        
-        self.path.transform.concat()
-        (x, y), (w, h) = self.path.bounds
-        
-        # When a gradient fill falls outside of the canvas,
-        # Core Graphics will produce a division by zero.
-        # This crashes NodeBox when exporting to PDF.
-        # Here we check if the transformed path (e.g.
-        # with scaling and rotation applied) will fall within the canvas bounds.
-        p = self.path.transform.transformBezierPath(self.path)
-        (tx, ty), (tw, th) = p.bounds
-        if tx+tw > 0 and ty+th > 0 and tx < _ctx.WIDTH and ty < _ctx.HEIGHT and tw > 0 and th > 0:
-            pass
-        else:
-            _restore()
-            return
-
-        # Set a fill to cast a shadow.
-        if _shadow and self._shadow_alpha > 0 \
-        and self.path.fillcolor:
-            self.path.fillcolor.set()
-            self.path._nsBezierPath.fill()
-
-        # A relative spread fills the area as best as possible:
-        # maximum of width/height for radial, minimum for linear.
-        spread = max(0.1, self.spread)
-        if isinstance(spread, float) or spread <= 1:
-            if self.type == "radial": spread *= max(w, h)
-            if self.type == "linear": spread *= min(w, h)
-
-        # Don't render a dropshadow for the gradient overlay.
-        if _shadow:
-            _shadow._shadow.setShadowColor_(transparent()._rgb)
-            _shadow._shadow.set()
-
-        if self.type == "radial":
-            filter = CIFilter.filterWithName_("CIRadialGradient")
-            filter.setDefaults()
-            filter.setValue_forKey_(CIVector.vectorWithX_Y_(x+w/2+self.dx, y+h/2+self.dy), "inputCenter")
-            filter.setValue_forKey_(spread, "inputRadius1")
-   
-        if self.type == "linear":
-            filter = CIFilter.filterWithName_("CILinearGradient")
-            filter.setDefaults()
-            dx = cos(radians(90-self.angle)) * spread
-            dy = sin(radians(90-self.angle)) * spread
-            filter.setValue_forKey_(CIVector.vectorWithX_Y_(x+self.dx, y+self.dy) ,"inputPoint0")
-            filter.setValue_forKey_(CIVector.vectorWithX_Y_(x+self.dx+dx, y+self.dy+dy) ,"inputPoint1")                     
-    
-        if self.type in ["radial", "linear"]:            
-            clr1 = CIColor.colorWithRed_green_blue_alpha_(
-                self.clr1.r, self.clr1.g, self.clr1.b, self.clr1.a
-            )
-            clr2 = CIColor.colorWithRed_green_blue_alpha_(
-                self.clr2.r, self.clr2.g, self.clr2.b, self.clr2.a
-            )        
-            filter.setValue_forKey_(clr2, "inputColor0")
-            filter.setValue_forKey_(clr1, "inputColor1")
-            
-            # Crop to the required area.
-            # This avoids a crash when exporting to PDF.
-            img = filter.valueForKey_("outputImage")
-            filter = CIFilter.filterWithName_("CICrop")
-            filter.setValue_forKey_(img, "inputImage")
-            filter.setValue_forKey_(CIVector.vectorWithX_Y_Z_W_(x, y, w, h), "inputRectangle")
-            
-            NSGraphicsContext.currentContext().saveGraphicsState()
-            context = NSGraphicsContext.currentContext().CIContext()
-            self.path._nsBezierPath.addClip()
-            context.drawImage_atPoint_fromRect_(
-                filter.valueForKey_("outputImage"), (x, y), ((x, y), (w, h)) 
-            )
-            NSGraphicsContext.currentContext().restoreGraphicsState()
-        
-        if _shadow:
-            _shadow._shadow.setShadowColor_(_shadow.clr._rgb)
-            _shadow._shadow.set()
-                
-        if self.path._strokecolor:
-            self.path._strokecolor.set()
-            self.path._nsBezierPath.setLineWidth_(self.path._strokewidth)
-            self.path._nsBezierPath.stroke()
-
-        _restore()
-
-gradientfill = gradientpath
-
-def gradientbackground(clr1, clr2, type="radial", dx=0, dy=0, spread=1.0, angle=0, alpha=1.0):
-    gradientfill(
-        _ctx.rect(0, 0, _ctx.WIDTH, _ctx.HEIGHT),
-        clr1, clr2, type, dx, dy, spread, angle, alpha
-    )
-
-#path = rect(0, 0, WIDTH, HEIGHT, draw=False)
-#gradientfill(path, color(0.1), color(0.5), type="linear")
-
-#font("Helvetica-Bold", 150)
-#shadow(blur=4, x=15, y=15)
-#path = textpath("gradients", 30, 200)
-#gradientfill(path, color(0.9,1.0,0), color(0.1,0.2,0), type="linear")
-
-######################################################################################################
-
 def colorwheel(x, y, r=250, labels=True, scope=1.0, shift=0.0):
     keys = named_hues.keys()
     def cmp(a, b):
         if named_hues[a] < named_hues[b]: return 1
         return -1
+
     keys.sort(cmp)
 
     _ctx.fill(0,0,0)
@@ -2857,9 +2395,9 @@ def colorwheel(x, y, r=250, labels=True, scope=1.0, shift=0.0):
         _ctx.fill(i*0.1)
         _ctx.oval(x-ri, y-ri, ri*2, ri*2)
         
-    _ctx.transform(CORNER)
-    _ctx.translate(x, y)
-    _ctx.rotate(65)
+    #_ctx.transform(CORNER)
+    #_ctx.translate(x, y)
+    #_ctx.rotate(65)
     a = 360.0/len(named_hues)
     for name in keys:
         _ctx.rotate(a)
@@ -2867,78 +2405,33 @@ def colorwheel(x, y, r=250, labels=True, scope=1.0, shift=0.0):
         for i in _range(20):
             if i < 2: continue
             x = r/40.0 * (25-i)
-            _ctx.push()
-            _ctx.rotate(2*i)
-            _ctx.translate(-0.1*i)
+            #_ctx.push()
+            #_ctx.rotate(2*i)
+            #_ctx.translate(-0.1*i)
             _ctx.fill(color(0,0,0,0.1, mode="rgb"))
             _ctx.oval(x, 2, x*0.7, x*0.7)
             _ctx.fill(color(h, 2.1-i*0.1, i*0.1, i*0.03, mode="hsb"))
             p = _ctx.oval(x, 0, x*0.7, x*0.7)
-            _ctx.pop()
+            #_ctx.pop()
         
         if labels and scope==1 and shift==0:
             _ctx.fill(color(h, 1, 0.4, mode="hsb"))
-            _ctx.push()
-            _ctx.rotate(-14)
-            _ctx.fontsize(r/16)
-            _ctx.text(name, r*i*0.015, -r/6.5)
-            _ctx.pop()
+            #_ctx.push()
+            #_ctx.rotate(-14)
+            #_ctx.fontsize(r/16)
+            #_ctx.text(name, r*i*0.015, -r/6.5)
+            #_ctx.pop()
     
-    _ctx.reset()
+    #_ctx.reset()
 
 #colorwheel(301, 266)
 
-# To-do:
-# distance color from range
 
-# 1.9.4.9
-# Gradients are cropped to the path to avoid a crash.
-
-# 1.9.4.8
-# Fixed small bug in swarm().
-# Color object now has a "hex" property.
-
-# 1.9.4.7
-# Added ZOOM_SHADOWS
-
-# 1.9.4.6
-# Creating themes from web now works with Google as well as Yahoo.
-# Added "nature" themes.
-
-# 1.9.4.5
-# Reverted changes to linear gradients, was correct.
-# Instead, the spread parameter can now also be an absolute int.
-
-# 1.9.4.4
-# For linear gradients, changed
-# d = min(w,h) * max(0.1,self.spread) to
-# d = max(w,h) * max(0.1,self.spread)
-
-# 1.9.4.3
-# Added color.blend()
-# Added Euclidean color.distance().
-# Added colorlist.sort_by_distance().
-# Added colorlist.sort_by_hue(), etc...
-# Added colorlist.cluster_sort().
-
-# 1.9.4.2
-# Added invert() for color.
-# Added gradientbackground() command.
-# Added sort and blend functionality for lists.
-# Fixed color list slices.
-
-# 1.9.4.1
-# Fixed bug when NodeBox color() is passed to gradient().
-# Fixed Color.adjust_hsb()
-
-# 1.9.4
-# colorrange(clr) now also works with standard NodeBox color().
-# Fixed bug in gradientfill() for shapes in negative areas.
-
-# 1.9.2.2
-# Updated image_from_rgb() for newer Core Image versions.
-# Fixed cmyk() and hex() commands.
-
-# 1.9.2.1
-# Added generic BaseColor class for use outside of NodeBox.
-# Added PIL support for creating color lists from pixels.
+if __name__ == "__main__":
+    from pypaint.context import Context
+    _ctx = Context(width=600, height=600)
+    clrs = colorlist(color(0.0, 1.0, 0.4))
+    
+    swatch(clrs.sort(), 50, 0)
+    #colorwheel(301, 266)
+    _ctx.save('')

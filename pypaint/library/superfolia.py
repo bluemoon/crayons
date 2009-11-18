@@ -7,9 +7,9 @@ import supershape
 from math import sqrt
 from math import sin, cos, radians
 
-from pyPaint import PyPaintContext as Context
-from nb_types.new_color import Color
-from util_random import random
+from pypaint.context        import Context
+from pypaint.types.color    import Color
+from pypaint.utils.p_random import random
 
 ctx = Context(width=600, height=600)
 
@@ -80,7 +80,8 @@ radial_gradient(
     [Color(0.05, 0.06, 0.0), Color(0.125, 0.150, 0.0)],
     -150, -150,
     radius=900
-) 
+)
+
 root(300, 300, angle=-90, depth=6)
 
 def flower(x, y, r): 

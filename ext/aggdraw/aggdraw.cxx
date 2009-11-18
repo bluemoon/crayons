@@ -1134,7 +1134,7 @@ draw_setantialias(DrawObject* self, PyObject* args)
 static PyObject*
 draw_settransform(DrawObject* self, PyObject* args)
 {
-    double a=1, b=0, c=0, d=0, e=1, f=0;
+  double a=1, b=0, c=0, d=1, e=0, f=0;
     if (!PyArg_ParseTuple(args, "|(dd):settransform", &c, &f)) {
         PyErr_Clear();
         if (!PyArg_ParseTuple(args, "(dddddd):settransform",
@@ -1144,7 +1144,7 @@ draw_settransform(DrawObject* self, PyObject* args)
 
     /* PIL order: x=ax+by+c y=dx+ey+f */
     /* AGG order: x=ax+cx+e y=bx+dy+f */
-    agg::trans_affine* transform = new agg::trans_affine(a, d, b, e, c, f);
+    agg::trans_affine* transform = new agg::trans_affine(a, b, c, d, e, f);
     if (!transform)
         return PyErr_NoMemory();
 
