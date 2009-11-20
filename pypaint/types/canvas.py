@@ -7,6 +7,7 @@ from pypaint.utils.defaults         import *
 from pypaint.types.mixins           import *
 from pypaint.utils.util             import *
 
+
 from PIL      import Image
 from uuid     import uuid4
 from aggdraw  import *
@@ -22,7 +23,7 @@ class PILCanvas(CanvasMixin):
         self.helper      = PILHelper()
         self.context     = PILContext()
 
-        #self.AGG_canvas.setantialias(True)
+        ## self.AGG_canvas.setantialias(True)
 
     def show(self, *arguments):
         self.AGG_canvas.flush()
@@ -32,7 +33,7 @@ class PILCanvas(CanvasMixin):
         if not ctx:
             ctx = self.context
 
-        ## draws things
+        ## Draws things
         for item in self.grobstack:
             if isinstance(item, ClippingPath):
                 deltax, deltay = item.center
@@ -156,10 +157,10 @@ class PILCanvas(CanvasMixin):
                 nPath.curveto(x+(1-k)*w/2, y+h, x, y+(1+k)*h/2, x, y+h/2)
                 nPath.close()
                 
-                ##ctx.translate(x + w / 2., y + h / 2.)
-                ##ctx.scale (w / 2., h / 2.)
-                ##ctx.arc (0., 0., 1., 0., 2 * pi)
-                ##ctx.restore()
+                ## ctx.translate(x + w / 2., y + h / 2.)
+                ## ctx.scale (w / 2., h / 2.)
+                ## ctx.arc (0., 0., 1., 0., 2 * pi)
+                ## ctx.restore()
             else:
                 raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
 
@@ -223,7 +224,7 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
             self.data = []
         
         elif isinstance(path, (tuple,list)):
-            # list of path elements
+            ## list of path elements
             self.data = []
             for element in path:
                 self.append(element)
@@ -371,7 +372,6 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
                 Y_set.append(H)
 
         
-
         if len(X_set) and len(Y_set):
             max_X = max(X_set)
             max_Y = max(Y_set)
@@ -398,7 +398,7 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
     center = property(_get_center)
 
     def _get_contours(self):
-        from nodebox.graphics import bezier
+
         return bezier.contours(self)
 
     contours = property(_get_contours)
@@ -427,7 +427,8 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
         
     ### Mathematics ###
     def segmentlengths(self, relative=False, n=10):
-        import bezier
+
+
         if relative: # Use the opportunity to store the segment cache.
             if self._segment_cache is None:
                 self._segment_cache = bezier.segment_lengths(self, relative=True, n=n)
@@ -542,15 +543,18 @@ class PathElement:
         data = list(self.values)
         data.insert(0, self.cmd)
         return data[key]
+
     def __repr__(self):
         data = list(self.values)
         data.insert(0, self.cmd)
         return "PathElement" + str(tuple(data))
+
     def __eq__(self, other):
         if other is None: return False
         if self.cmd != other.cmd: return False
         if self.values != other.values: return False
         return True
+
     def __ne__(self, other):
         return not self.__eq__(other)
 

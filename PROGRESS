@@ -4,9 +4,11 @@ nodebox compatibility:
     [x]  star()
     [x]  oval()
     [x]  line()
-    [ ]  arrow()
+    [x]  arrow()
+
   Path:
     [x]  beginpath()
     [x]  moveto()
+    [x]  lineto()
   Text:
     [ ]  font()

@@ -95,28 +95,7 @@ class Transform(object):
     def __iter__(self):
         for value in self.matrix:
             yield value
-    """
-    def rotate(self, degrees=0, radians=0):
-        ## trans_affine(cos(a), sin(a), -sin(a), cos(a), 0.0, 0.0)
-        if degrees:
-            self._transforms.append((cos(degrees), sin(degrees), -sin(degrees), cos(degrees), 0.0, 0.0))
-        else:
-            degrees = (pi * radians)/180
-            self._transforms.append((cos(degrees), sin(degrees), -sin(degrees), cos(degrees), 0.0, 0.0))
 
-
-    def translate(self, x=0, y=0):
-        self._transforms.append((1.0, 0.0, 0.0, 1.0, x, y))
-
-    def scale(self, x=1, y=None):
-        if y is None:
-            self._transforms.append((x, 0.0, 0.0, x, 0.0, 0.0))
-        else:
-            self._transforms.append((x, 0.0, 0.0, y, 0.0, 0.0))
-
-    def skew(self, x=0, y=0):
-        self._transforms.append((1.0, tan(y), tan(x), 1.0, 0.0, 0.0))
-    """
     def transform_point(self, x, y, matrix):
         (sx, shy, shx, sy, tx, ty) = matrix.tolist()
         deltax = x * sx  +  y * shx + tx
@@ -129,6 +108,7 @@ class Transform(object):
         m_archived = []
         
         m = np.array([1.0, 0.0, 0.0,  1.0, 0.0, 0.0])
+
         for trans in self.stack: 
             if isinstance(trans, tuple) and trans[0] in TRANSFORMS:
                 ## parse transform command
@@ -152,18 +132,16 @@ class Transform(object):
                         #m *= cairo.Matrix(ct, st, -st, ct, deltax - (ct*deltax) + (st*deltay),deltay-(st*deltax)-(ct*deltay)) 
 
                     if mode == 'center':
-                        # apply existing transform to centerpoint
+                        ## apply existing transform to centerpoint
                         (sx, shy, shx, sy, tx, ty) = m.tolist()
 
                         ## sx(1.0), shy(0.0), shx(0.0), sy(1.0), tx(0.0), ty(0.0)
-
 
                         radians = args[0]
                         degrees = radians ##* (180/pi)
 
                         m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), 0, 0])#deltax - (ca * deltax) + (sa * deltay), deltay - (sa * deltax) - (ca * deltay)])
                         (deltax, deltay) = self.transform_point(centerx, centery, m)                        
-                        #print (sx, shy, shx, sy, tx, ty)
                         m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), deltax, deltay])
 
                 elif cmd == 'scale':

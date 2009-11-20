@@ -507,8 +507,12 @@ class Context:
 
     def Height(self):
         return self.HEIGHT
+
     def Width(self):
         return self.WIDTH
 
     def font(self, *arguments):
-        print arugments
+        ##if draw:
+        ##    self.canvas.add(r)
+        ## Font(color, file, size=12, opacity=255)
+        return self.Text(*arguments)

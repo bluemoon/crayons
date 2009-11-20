@@ -16,7 +16,6 @@ ctx.beginpath()
 ctx.curveto(0, 60, 40, 100, 100, 100)
 ctx.endpath()
 
- 	
 ctx.fill(0.2)
 ctx.rotate(degrees=20)
 ctx.rect(150, 150, 20, 20)
