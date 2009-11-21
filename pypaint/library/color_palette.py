@@ -2,6 +2,10 @@ import os
 from pypaint.library.color_data  import *
 from pypaint.types.color         import Color
 
+def rgb(r, g, b, a=None, range=1.0, name=""):
+    return ColorPalette((r, g, b, a))
+
+
 
 _range = range
 

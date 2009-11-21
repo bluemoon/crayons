@@ -286,8 +286,8 @@ class Context:
 
     def drawpath(self, path):
         if isinstance(path, BezierPath):
-            p = self.BezierPath(path)
-            self.canvas.add(p)
+            #p = self.BezierPath(path)
+            self.canvas.add(path)
         elif isinstance(path, Image):
             self.canvas.add(path)
 
@@ -297,13 +297,14 @@ class Context:
     def autoclosepath(self, close=True):
         self._autoclosepath = close
 
+
     def transform(self, mode=None): # Mode can be CENTER or CORNER
         if mode:
             self._transformmode = mode
         return self._transformmode
 
     def translate(self, x, y):
-        self._transform.translate(x,y)
+        self._transform.translate(x, y)
 
     def rotate(self, degrees=0, radians=0):
         if radians:
@@ -311,11 +312,12 @@ class Context:
         else:
             angle = (degrees * pi)/180.0
 
-        self._transform.rotate(-angle)
+        self._transform.rotate(angle)
 
     def scale(self, x=1, y=None):
         if not y:
             y = x
+
         if x == 0 or x == -1:
             # Cairo borks on zero values
             x = 1
@@ -505,14 +507,87 @@ class Context:
     def color(self, *args):
         return Color(mode=self.color_mode, color_range=self.color_range, *args)
 
+
     def Height(self):
         return self.HEIGHT
+    HEIGHT = property(Height)
 
     def Width(self):
         return self.WIDTH
+    WIDTH = property(Width)
 
-    def font(self, *arguments):
-        ##if draw:
-        ##    self.canvas.add(r)
-        ## Font(color, file, size=12, opacity=255)
-        return self.Text(*arguments)
+
+    def font(self, fontpath=None, fontsize=None):
+        '''Set the font to be used with new text instances.
+
+        Accepts TrueType and OpenType files. Depends on FreeType being
+        installed.'''
+
+        if fontpath is not None:
+            self._fontfile = fontpath
+        else:
+            return self._fontfile
+        if fontsize is not None:
+            self._fontsize = fontsize
+
+    def fontsize(self, fontsize=None):
+        if fontsize is not None:
+            self._fontsize = fontsize
+        else:
+            return self.canvas.font_size
+
+    def text(self, txt, x, y, width=None, height=1000000, outline=False, draw=True, **kwargs):
+        '''
+        Draws a string of text according to current font settings.
+        '''
+        txt = self.Text(txt, x, y, width, height, ctx=self.canvas._context, **kwargs)
+        if outline:
+          path = txt.path
+          if draw:
+              self.canvas.add(path)
+          return path
+        else:
+          if draw:
+            self.canvas.add(txt)
+          return txt
+
+    def textpath(self, txt, x, y, width=None, height=1000000, draw=True, **kwargs):
+        '''
+        Draws an outlined path of the input text
+        '''
+        txt = self.Text(txt, x, y, width, height, **kwargs)
+        path = txt.path
+        if draw:
+            self.canvas.add(path)
+        return path
+
+    def textmetrics(self, txt, width=None, height=None, **kwargs):
+        '''Returns the width and height of a string of text as a tuple
+        (according to current font settings).
+        '''
+        # for now only returns width and height (as per Nodebox behaviour)
+        # but maybe we could use the other data from cairo
+        txt = self.Text(txt, 0, 0, width, height, **kwargs)
+        return txt.metrics
+
+    def textwidth(self, txt, width=None):
+        '''Returns the width of a string of text according to the current
+        font settings.
+        '''
+        w = width
+        return self.textmetrics(txt, width=w)[0]
+
+    def textheight(self, txt, width=None):
+        '''Returns the height of a string of text according to the current
+        font settings.
+        '''
+        w = width
+        return self.textmetrics(txt, width=w)[1]
+
+
+    def lineheight(self, height=None):
+        if height is not None:
+            self._lineheight = height
+
+    def align(self, align="LEFT"):
+        self._align=align

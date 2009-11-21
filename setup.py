@@ -14,7 +14,7 @@ setup(
     author = "Alex Toney",
     
     packages=[
-        'pypaint', 
+        'pypaint',
         'pypaint.utils',
         'pypaint.types',
         'pypaint.geometry',

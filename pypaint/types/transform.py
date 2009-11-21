@@ -1,5 +1,6 @@
 from math import *
 import numpy as np
+from numpy import array
 
 TRANSFORMS = ['translate', 'scale', 'rotate', 'skew', 'push', 'pop']
 
@@ -7,16 +8,36 @@ class Matrix:
     matrix = None
 
     def __init__(self, matrix=None):
+        if not matrix:
+            self.matrix = np.array([1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+        else:
+            self.matrix = np.array(matrix)
+
+    def _setTuple(self, matrix):
         self.matrix = matrix
 
-    def translate(self, draw, x, y):
-        self.matrix = (1.0, 0.0, 0.0, 1.0, x, y)
-        #self.transform(draw)
+    def _toTuple(self):
+        return self.matrix.tolist()
+    
+    Tuple = property(_toTuple, _setTuple)
 
-
-    #def transform(self, draw):
-    #    draw.settransform(self.matrix)
+    def _setNumpy(self, matrix):
+        self.matrix = np.array(matrix)
         
+    def _getNumpy(self):
+        return self.matrix
+    
+    numpy = property(_getNumpy, _setNumpy)
+
+    def __add__(self, other_add):
+        (sx1, shy1, shx1, sy1, tx1, ty1) = self._toTuple()
+        (sx2, shy2, shx2, sy2, tx2, ty2) = other_add.Tuple
+
+        return Matrix([sx2, shy1+shy2, shx1+shx2, sy2, tx1+tx2, ty1+ty2])
+
+
+
+
 class Transform(object):
     def __init__(self, transform=None):
         self._transforms = []
@@ -37,7 +58,7 @@ class Transform(object):
             self.append(transform)
 
         else:
-            raise ShoebotError, _("Transform: Don't know how to handle transform %s.") % transform
+            raise Exception("Transform: Don't know how to handle transform %s." % transform)
 
     def translate(self, x, y):
         t = ('translate', x, y)
@@ -80,7 +101,7 @@ class Transform(object):
             for item in self.stack:
                 newstack.append(item)
             self.stack = newstack
-        elif isinstance(t, cairo.Matrix):
+        elif isinstance(t, Matrix):
             self.stack.insert(0,t)
         else:
             raise Exception("Transform: Can only append Transforms or Matrices (got %s)" % (t))
@@ -97,7 +118,7 @@ class Transform(object):
             yield value
 
     def transform_point(self, x, y, matrix):
-        (sx, shy, shx, sy, tx, ty) = matrix.tolist()
+        (sx, shy, shx, sy, tx, ty) = matrix.Tuple
         deltax = x * sx  +  y * shx + tx
         deltay = x * shy +  y * sy  + ty
         return (x-deltax, y-deltay)
@@ -105,9 +126,10 @@ class Transform(object):
     def getMatrixWCenter(self, x, y, mode):
         centerx = x
         centery = y
+
         m_archived = []
-        
-        m = np.array([1.0, 0.0, 0.0,  1.0, 0.0, 0.0])
+
+        m = Matrix()
 
         for trans in self.stack: 
             if isinstance(trans, tuple) and trans[0] in TRANSFORMS:
@@ -118,31 +140,30 @@ class Transform(object):
                 if cmd == 'translate':       
                     xt = args[0]
                     yt = args[1]
-
-                    m *= np.array([1.0, 0.0, 0.0, 1.0, x, y])
+                    
+                    m += Matrix([1.0, 0.0, 0.0, 1.0,  xt,  yt])
 
                 elif cmd == 'rotate':
                     if mode == 'corner':                        
                         # apply existing transform to cornerpoint
                         deltax, deltay = m.transform_point(0, 0)
+                        
                         a = args[0]
 
                         ct = cos(a)
                         st = sin(a)
-                        #m *= cairo.Matrix(ct, st, -st, ct, deltax - (ct*deltax) + (st*deltay),deltay-(st*deltax)-(ct*deltay)) 
+
+                        m += Matrix([ct, st, -st, ct, deltax - (ct*deltax) + (st*deltay), deltay-(st*deltax)-(ct*deltay)]) 
 
                     if mode == 'center':
                         ## apply existing transform to centerpoint
-                        (sx, shy, shx, sy, tx, ty) = m.tolist()
-
                         ## sx(1.0), shy(0.0), shx(0.0), sy(1.0), tx(0.0), ty(0.0)
 
                         radians = args[0]
-                        degrees = radians ##* (180/pi)
+                        m = np.array([cos(radians), sin(radians), -sin(radians), cos(radians), 0, 0])
+                        (deltax, deltay) = self.transform_point(centerx, centery, m)
 
-                        m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), 0, 0])#deltax - (ca * deltax) + (sa * deltay), deltay - (sa * deltax) - (ca * deltay)])
-                        (deltax, deltay) = self.transform_point(centerx, centery, m)                        
-                        m = np.array([cos(degrees), sin(degrees), -sin(degrees), cos(degrees), deltax, deltay])
+                        m += Matrix([cos(radians), sin(radians), -sin(radians), cos(radians), deltax, deltay])
 
                 elif cmd == 'scale':
                     if mode == 'corner':
@@ -185,10 +206,15 @@ class Transform(object):
 
                 elif cmd == 'push':
                     m_archived.append(m)
+
                 elif cmd == 'pop':
                     m = m_archived.pop()
         
-        return m.tolist()
+        
+        if isinstance(m, Matrix):
+            return m.Tuple
+        else:
+            return m.tolist()
 
     def get_matrix(self):
         '''

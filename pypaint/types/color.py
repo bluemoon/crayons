@@ -216,3 +216,4 @@ class Color(object):
         
         raise AttributeError, "'"+str(self.__class__)+"' object has no attribute '"+a+"'"
 
+    

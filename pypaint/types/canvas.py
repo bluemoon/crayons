@@ -23,8 +23,6 @@ class PILCanvas(CanvasMixin):
         self.helper      = PILHelper()
         self.context     = PILContext()
 
-        ## self.AGG_canvas.setantialias(True)
-
     def show(self, *arguments):
         self.AGG_canvas.flush()
         self.canvas.show()
