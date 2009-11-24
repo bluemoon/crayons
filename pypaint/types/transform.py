@@ -59,7 +59,8 @@ class Transform(object):
 
         else:
             raise Exception("Transform: Don't know how to handle transform %s." % transform)
-
+        
+        
     def translate(self, x, y):
         t = ('translate', x, y)
         self.stack.append(t)
@@ -118,7 +119,7 @@ class Transform(object):
             yield value
 
     def transform_point(self, x, y, matrix):
-        (sx, shy, shx, sy, tx, ty) = matrix.Tuple
+        (sx, shy, shx, sy, tx, ty) = matrix.tolist()
         deltax = x * sx  +  y * shx + tx
         deltay = x * shy +  y * sy  + ty
         return (x-deltax, y-deltay)
@@ -160,8 +161,8 @@ class Transform(object):
                         ## sx(1.0), shy(0.0), shx(0.0), sy(1.0), tx(0.0), ty(0.0)
 
                         radians = args[0]
-                        m = np.array([cos(radians), sin(radians), -sin(radians), cos(radians), 0, 0])
-                        (deltax, deltay) = self.transform_point(centerx, centery, m)
+                        m_ = np.array([cos(radians), sin(radians), -sin(radians), cos(radians), 0, 0])
+                        (deltax, deltay) = self.transform_point(centerx, centery, m_)
 
                         m += Matrix([cos(radians), sin(radians), -sin(radians), cos(radians), deltax, deltay])
 

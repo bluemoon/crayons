@@ -2,6 +2,8 @@ from pypaint.utils.defaults      import *
 from pypaint.types.transform     import Transform
 from pypaint.types.color         import Color
 
+import Queue
+
 _STATE_NAMES = {
     '_outputmode':    'outputmode',
     '_colorrange':    'colorrange',
@@ -178,12 +180,13 @@ class CanvasMixin:
         self.font_size = 12
 
         self.clear()
+        self.grobStack = Queue.PriorityQueue()
 
-    def add(self, grob):
+    def add(self, grob, priority=3):
         if not isinstance(grob, Grob):
             raise ("Canvas.add() - wrong argument: expecting a Grob, received %s") % (grob)
 
-        self.grobstack.append(grob)
+        self.grobStack.put((priority, grob))
 
     def append(self, grob):
         self.add(self, grob)
@@ -212,4 +215,4 @@ class CanvasMixin:
         pass
 
     def clear(self):
-        self.grobstack = []
+        self.grobStack = Queue.PriorityQueue()

@@ -2,17 +2,19 @@ from pypaint.interfaces.PIL.helper  import PILHelper
 from pypaint.interfaces.PIL.context import PILContext
 from pypaint.interfaces.PIL.path    import PathWrap
 from pypaint.types.transform        import Transform
+from pypaint.types.text             import Text
 from pypaint.types.paths            import ClippingPath
 from pypaint.utils.defaults         import *
 from pypaint.types.mixins           import *
 from pypaint.utils.util             import *
-
+from pypaint                        import ft2
 
 from PIL      import Image
 from uuid     import uuid4
 from aggdraw  import *
 
 import os
+
 
 class PILCanvas(CanvasMixin):
     def __init__(self, width=None, height=None):
@@ -22,6 +24,8 @@ class PILCanvas(CanvasMixin):
         self.AGG_canvas  = Draw(self.canvas)
         self.helper      = PILHelper()
         self.context     = PILContext()
+        
+        self.AGG_canvas.setantialias(True)
 
     def show(self, *arguments):
         self.AGG_canvas.flush()
@@ -32,7 +36,9 @@ class PILCanvas(CanvasMixin):
             ctx = self.context
 
         ## Draws things
-        for item in self.grobstack:
+        while not self.grobStack.empty():
+            (priority, item) = self.grobStack.get()
+
             if isinstance(item, ClippingPath):
                 deltax, deltay = item.center
                 m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
@@ -48,12 +54,14 @@ class PILCanvas(CanvasMixin):
                     self.drawpath(item, ctx)
 
                 elif isinstance(item, Text):
-                    x,y = item.metrics[0:2]
+                    x, y = item.metrics[0:2]
                     deltax, deltay = item.center
                     m = item._transform.getMatrixWCenter(deltax, deltay-item.baseline, item._transformmode)
                     #ctx.transform(m)
-                    #ctx.translate(item.x, item.y-item.baseline)
-                    self.drawtext(item, ctx)
+                    #ctx.translate(item.x, item.y - item.baseline)
+                    self.AGG_canvas.settransform(tuple(m))
+
+                    self.draw_text(item, ctx)
 
                 elif isinstance(item, Image):
                     deltax, deltay = item.center
@@ -61,12 +69,17 @@ class PILCanvas(CanvasMixin):
                     ctx.transform(m)
                     self.drawimage(item, ctx)
 
-                ctx.restore()
-    
+            self.grobStack.task_done()
+
+    def draw_text(self, text, ctx=None):
+        font = Font(0.8, text._fontfile, size=text._fontsize)
+        self.AGG_canvas.text((text.x, text.y), text.text, font)
+        self.AGG_canvas.flush()
+
     def drawclip(self, path, ctx=None):
         '''Passes the path to a Cairo context.'''
         if not isinstance(path, ClippingPath):
-            raise ShoebotError(_("drawpath(): Expecting a ClippingPath, got %s") % (path))
+            raise Exception("drawpath(): Expecting a ClippingPath, got %s" % path)
 
         if not ctx:
             ctx = self._context
@@ -164,7 +177,6 @@ class PILCanvas(CanvasMixin):
 
         arguments = self.buildPenBrush(path, templateArgs=nPath)
         self.AGG_canvas.path(*arguments)
-        
         self.AGG_canvas.flush()
 
     def buildPenBrush(self, path, templateArgs=None):

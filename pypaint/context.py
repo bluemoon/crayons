@@ -1,5 +1,6 @@
 from PIL                             import Image
 from pypaint.types.transform         import Transform
+from pypaint.types.text              import Text
 from pypaint.types.canvas            import BezierPath
 from pypaint.types.canvas            import PILCanvas
 from pypaint.types.color             import Color
@@ -122,7 +123,6 @@ class Context:
           raise Exception("arrow: available types for arrow() are NORMAL and FORTYFIVE\n")
 
     def _arrow(self, x, y, width, draw, **kwargs):
-
         head = width * .4
         tail = width * .2
 
@@ -136,10 +136,9 @@ class Context:
         p.lineto(x-head, y-head)
         p.lineto(x, y)
         p.closepath()
-        p.inheritFromContext(kwargs.keys())
 
         if draw:
-          p.draw()
+          self.canvas.add(p)
 
         return p
 
@@ -159,7 +158,6 @@ class Context:
         p.lineto(x-width, y+width*head)
         p.lineto(x-width*(1-head), y)
         p.lineto(x, y)
-        p.inheritFromContext(kwargs.keys())
     
         if draw:
           p.draw()
@@ -536,26 +534,28 @@ class Context:
         else:
             return self.canvas.font_size
 
-    def text(self, txt, x, y, width=None, height=1000000, outline=False, draw=True, **kwargs):
+    def text(self, txt, x, y, width=None, height=None, outline=False, draw=True, **kwargs):
         '''
         Draws a string of text according to current font settings.
         '''
-        txt = self.Text(txt, x, y, width, height, ctx=self.canvas._context, **kwargs)
+        txt = self.Text(txt, x, y, width, height, **kwargs)
         if outline:
           path = txt.path
           if draw:
               self.canvas.add(path)
           return path
+
         else:
           if draw:
-            self.canvas.add(txt)
+            self.canvas.add(txt, priority=3)
+
           return txt
 
     def textpath(self, txt, x, y, width=None, height=1000000, draw=True, **kwargs):
         '''
         Draws an outlined path of the input text
         '''
-        txt = self.Text(txt, x, y, width, height, **kwargs)
+        txt = self.Text(txt, x=x, y=y, width=width, height=height, **kwargs)
         path = txt.path
         if draw:
             self.canvas.add(path)

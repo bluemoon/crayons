@@ -1,4 +1,7 @@
-from util_random import random
+from pypaint.utils.p_random import random
+
+WIDTH  = 500
+HEIGHT = 500
 
 class Boid:
     def __init__(self, boids, x, y, z, ctx=None):
@@ -137,7 +140,7 @@ class Boids(list):
         self._scatter_i = 0
         
         self._perch = 1.0 # Lower this number to simulate diving.
-        self._perch_y = self._ctx.HEIGHT
+        self._perch_y = HEIGHT
         self._perch_t = lambda:25+random(50)
     
         self.has_goal = False
@@ -318,24 +321,13 @@ def flock(n, x, y, w, h, ctx):
     return Boids(n, x, y, w, h, ctx)
 
 
-if __name__ == "__main__":
-	import sys
-import os
-sys.path.append(os.getcwd()) 
-
-from pyPaint import PyPaintContext as Context
-import boids
-
-WIDTH  = 500
-HEIGHT = 500
-
 def setup(ctx):    
     # Create 3 flocks each with 10 boids.
     # Each flock crowds around the center of the canvas.
     global flocks
     flocks = []
     for i in range(3):
-        flock = boids.flock(10, 0, 0, WIDTH, HEIGHT, ctx)
+        flock = Boids(10, 0, 0, WIDTH, HEIGHT)
         flock.goal(WIDTH/2, HEIGHT/2, 0)
         flocks.append(flock)
     
@@ -343,13 +335,13 @@ def draw(ctx):
     ctx.background(0.2)
     
     ctx.fill(0.8)
-    #fontsize(20)
-    #w = textwidth("STATUE")
-    #text("STATUE", WIDTH/2-w/2, HEIGHT/2)
+    ctx.fontsize(20)
+    w = ctx.textwidth("Statue")
+    ctx.text("Statue", WIDTH/2-w/2, HEIGHT/2)
 
     # Update each flock.
     global flocks
-
+        
     for flock in flocks:
         flock.update(goal=40)
         
@@ -358,17 +350,23 @@ def draw(ctx):
         for boid in flock:
             r = 10 + boid.z * 0.25
             alpha = 0.5 + boid.z*0.01
-            fill(0.6, 0.6, 0.6, alpha)
-            rotate(-boid.angle)
-            arrow(boid.x-r/2, boid.y-r/2, r)
-            #reset()
+            ctx.fill(0.6, 0.6, 0.6, alpha)
+            ctx.rotate(-boid.angle)
+            ctx.arrow(boid.x-r/2, boid.y-r/2, r)
+            ctx.reset()
 
 
 def main():
     ctx = Context(width=500, height=500)
-    
+    ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
+
     setup(ctx)
     draw(ctx)
+    
+    ctx.save('')
 
 
 
+if __name__ == "__main__":
+    from pypaint.context import  Context
+    main()
