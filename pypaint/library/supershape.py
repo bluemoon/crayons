@@ -54,3 +54,38 @@ def transform(ctx, path, m, n1, n2, n3, points=100, range=TWOPI):
         else:
             ctx.lineto(pt.x+dx, pt.y+dy)
     return ctx.endpath(draw=False)
+
+
+
+if __name__ == "__main__":
+    from pypaint.context import Context
+    ctx = Context(width=400, height=400)
+
+    def setup():    
+        global x, y, w, h, m, n1, n2, n3, i
+        
+        x, y = 200, 200
+        w, h = 100, 100
+        m = 6.0
+        n1 = 1.0
+        n2 = 1.0
+        n3 = 1.0
+        i = 0.0
+
+    def draw():
+        global x, y, w, h, m, n1, n2, n3, i
+        
+        m = 12
+        n1 = 5.0 + sin(i)
+        n2 = 10 + cos(i) * 10
+        n3 = sin(i) * 10
+        i += 0.05
+        
+        ctx.rotate(i*10)
+        p = path(ctx, x, y, w, h, m, n1, n2, n3)
+        ctx.drawpath(p)
+    
+    setup()
+    draw()
+
+    ctx.save('test_images/supershape.png')

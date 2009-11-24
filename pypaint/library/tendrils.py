@@ -7,7 +7,7 @@ from math import pi, sin, cos, radians
 ctx = Context(width=600, height=600)
 
 class Tendril:
-    def __init__(self, x, y, width=3):
+    def __init__(self, x, y, width=15):
         """ 
         A new sinewy tendril at location x and y.
         Its segment width will gradually become smaller as it grows.
@@ -20,7 +20,7 @@ class Tendril:
         self.segments = []
         self.v = 0
  
-    def grow(self, distance=3.0, curl=1.0, step=0.01):
+    def grow(self, distance=3.0, curl=1.0, step=0.02):
         """ Tendril segment growth using fluid, spiral sine functions,
         taken from the ART+COM Tendrils class for Processing.
         """
@@ -48,7 +48,7 @@ class Tendril:
                 ctx.oval(x, y, r, r)
         
 class Plant:
-    def __init__(self, x, y, tendrils=30, width=6.0):
+    def __init__(self, x, y, tendrils=30, width=15):
         """ A collection of tendrils.
         """
         self.x = x
@@ -59,7 +59,7 @@ class Plant:
                 Tendril(self.x, self.y, width)
             )
     
-    def grow(self, distance=5.0, curl=1.0, step=0.01):
+    def grow(self, distance=5.0, curl=1.0, step=0.02):
         """ Grow a new segment on each of the plant's tendrils.
         """
         for b in self.tendrils:
@@ -87,9 +87,9 @@ if __name__ == "__main__":
     ctx.stroke(1, 0.5)
     ctx.strokewidth(0.5)
  
-    plant = Plant(300, 300, tendrils=50)
-    for i in range(20): 
-        plant.grow(curl=5.0, step=0.01)
+    plant = Plant(300, 300, tendrils=20)
+    for i in range(200): 
+        plant.grow(curl=1, step=0.02)
  
     plant.draw()
-    ctx.save('')
+    ctx.save('test_images/tendrils.png')

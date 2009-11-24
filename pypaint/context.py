@@ -70,7 +70,7 @@ class Context:
         #self.canvas.flush()
         self.canvas.draw()
         self.canvas.output(filename, "PNG")
-        self.canvas.show()
+        #self.canvas.show()
     
     def size(self, width, height):
         self.WIDTH  = width
@@ -538,7 +538,8 @@ class Context:
         '''
         Draws a string of text according to current font settings.
         '''
-        txt = self.Text(txt, x, y, width, height, **kwargs)
+        path = self.BezierPath(None)
+        txt = self.Text(txt, x, y, width, height, path=path, **kwargs)
         if outline:
           path = txt.path
           if draw:

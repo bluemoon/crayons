@@ -505,4 +505,4 @@ if __name__ == "__main__":
     _ctx.stroke(0)
 
     path(p, tweaks=100, helper=True, flat=False, draw=True)
-    _ctx.save('')
+    _ctx.save('test_images/cornu.png')

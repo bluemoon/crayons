@@ -334,10 +334,10 @@ def setup(ctx):
 def draw(ctx):
     ctx.background(0.2)
     
-    ctx.fill(0.8)
-    ctx.fontsize(20)
-    w = ctx.textwidth("Statue")
-    ctx.text("Statue", WIDTH/2-w/2, HEIGHT/2)
+    #ctx.fill(0.8)
+    #ctx.fontsize(20)
+    #w = ctx.textwidth("Statue")
+    #ctx.text("Statue", WIDTH/2-w/2, HEIGHT/2)
 
     # Update each flock.
     global flocks
@@ -358,12 +358,12 @@ def draw(ctx):
 
 def main():
     ctx = Context(width=500, height=500)
-    ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
+    #ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
 
     setup(ctx)
     draw(ctx)
     
-    ctx.save('')
+    ctx.save('test_images/boids.png')
 
 
 

@@ -1,30 +1,38 @@
 from pypaint.utils.util   import *
 from pypaint.types.mixins import *
-from pypaint import ft2
+from pypaint.types.paths  import BezierPath
+from pypaint              import ft2
 
-class glyph(object):
-    def __init__(self, **kwargs):
-        self.__dict__['attributes'] = {}
+from fontTools.ttLib import TTFont
+from fontTools.pens.basePen import BasePen
 
-        if kwargs:
-            for key, value in kwargs.items():
-                self.__dict__['attributes'][key] = value
+class BezierPen(BasePen):
+    def __init__(self, glyphSet, path=None, ctx=None):
+        BasePen.__init__(self, glyphSet)
+        if path is None and ctx:
+            path = BezierPath(ctx)
         
-    def __getattr__(self, attr):
-        if self.__dict__['attributes'].has_key(attr):
-            return self.__dict__['attributes'][attr]
+        self.path = path
 
-    def __setattr__(self, attr, value):
-        ## self.attributes[attr] = value
-        self.__dict__['attributes'][attr] = value
+    def _moveTo(self, (x,y)):
+        self.path.moveto(x,y)
+        
+    def _lineTo(self, (x,y)):
+        self.path.lineto(x,y)
+        
+    def _curveToOne(self, (x1,y1), (x2,y2), (x3,y3)):
+        self.path.curveto(x1, y1, x2, y2, x3, y3)
 
-    def __repr__(self):
-        return "<%s:%s>" %  (type(self).__name__, self.attributes)
+    def _closePath(self):
+        self.path.closepath()
+
+    def draw(self):
+        pass
 
 class Text(Grob, TransformMixin, ColorMixin):
     stateAttributes = ('_transform', '_transformmode', '_fillcolor', '_fontfile', '_fontsize', '_align', '_lineheight')
     
-    def __init__(self, ctx, text, x=0, y=0, width=None, height=None,  **kwargs):
+    def __init__(self, ctx, text, x=0, y=0, width=None, height=None, path=None,  **kwargs):
         self._ctx = ctx
 
         if ctx:
@@ -35,22 +43,11 @@ class Text(Grob, TransformMixin, ColorMixin):
         self.y = y
         self.width = width
         self.height = height
-
         self.font_lib = ft2.Library()
-
-        
-        f = open(self._fontfile)
-        self._font_face = ft2.Face(self.font_lib, f, 0)
-        self._metrics = self._font_face.getMetrics()
-        # "(x_ppem, y_ppem, x_scale, y_scale, ascender, descender, height, "
-        # "max_advance) as stored in FT_Face->size->metrics."
-            #self._glyph = ft2.Glyph(self._font_face, thisIndex, 0)
-
-        last_idx = 0
-
+        self.path = path
         self._glyph_data = []
-
         self.resolution = 72
+
         self.text_xmin = 0
         self.text_ymin = 0
         self.text_xmax = 0
@@ -58,6 +55,20 @@ class Text(Grob, TransformMixin, ColorMixin):
 
         self.posX = 0
         self.posY = 0
+
+        f = open(self._fontfile)
+        self._font_face = ft2.Face(self.font_lib, f, 0)
+        self._metrics = self._font_face.getMetrics()
+        
+        last_idx = 0
+
+        self._font = TTFont(self._fontfile)
+	self._glyph_set = self._font.getGlyphSet()
+        self._pen = BezierPen(self._glyph_set, self.path)
+
+        
+        #glyph.draw(self._pen)
+                
 
         for index in range(self._font_face.num_charmaps):
             cm = ft2.CharMap(self._font_face, index)
@@ -97,7 +108,7 @@ class Text(Grob, TransformMixin, ColorMixin):
         self.metrics_width  = (self.text_xmax - self.text_xmin) >> 6
         self.metrics_height = (self.text_ymax - self.text_ymin) >> 6
 
-
+        f.close()
 
 
     def _get_glyph_data(self):
