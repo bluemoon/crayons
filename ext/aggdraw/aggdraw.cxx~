@@ -1014,14 +1014,14 @@ draw_rectangle(DrawObject* self, PyObject* args)
 }
 
 
-static PyObject* draw_path(DrawObject* self, PyObject* args, PyObject* keywds){
+static PyObject* draw_path(DrawObject* self, PyObject* args){
   PathObject* path;
   PyObject*   brush = NULL;
   PyObject*   pen   = NULL;
 
   char *kwlist[] = {"pen", "brush", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, "O!|OO", kwlist, &PathType, &path, &brush, &pen)){
+  if (!PyArg_ParseTuple(args, "O!|OO:path", &PathType, &path, &brush, &pen)){
     return NULL;
   }
 
@@ -1134,7 +1134,7 @@ draw_setantialias(DrawObject* self, PyObject* args)
 static PyObject*
 draw_settransform(DrawObject* self, PyObject* args)
 {
-    double a=1, b=0, c=0, d=0, e=1, f=0;
+  double a=1, b=0, c=0, d=1, e=0, f=0;
     if (!PyArg_ParseTuple(args, "|(dd):settransform", &c, &f)) {
         PyErr_Clear();
         if (!PyArg_ParseTuple(args, "(dddddd):settransform",
@@ -1144,7 +1144,7 @@ draw_settransform(DrawObject* self, PyObject* args)
 
     /* PIL order: x=ax+by+c y=dx+ey+f */
     /* AGG order: x=ax+cx+e y=bx+dy+f */
-    agg::trans_affine* transform = new agg::trans_affine(a, d, b, e, c, f);
+    agg::trans_affine* transform = new agg::trans_affine(a, b, c, d, e, f);
     if (!transform)
         return PyErr_NoMemory();
 
@@ -1282,7 +1282,7 @@ static PyMethodDef draw_methods[] = {
     {"textsize", (PyCFunction) draw_textsize, METH_VARARGS},
 #endif
 
-    {"path", (PyCFunction) draw_path, METH_VARARGS|METH_KEYWORDS},
+    {"path", (PyCFunction) draw_path, METH_VARARGS},
     {"symbol", (PyCFunction) draw_symbol, METH_VARARGS},
 
     {"arc", (PyCFunction) draw_arc, METH_VARARGS},
@@ -1792,13 +1792,41 @@ path_rlineto(PathObject* self, PyObject* args)
     return Py_None;
 }
 
-
-
 static PyObject*
 path_curveto(PathObject* self, PyObject* args)
 {
     double x1, y1, x2, y2, x, y;
     if (!PyArg_ParseTuple(args, "dddddd:curveto", &x1, &y1, &x2, &y2, &x, &y))
+        return NULL;
+
+    self->path->curve4(x1, y1, x2, y2, x, y);
+    
+    expandPaths(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject*
+path_curve3to(PathObject* self, PyObject* args)
+{
+    double x1, y1, x2, y2, x, y;
+    if (!PyArg_ParseTuple(args, "dddddd:curve3to", &x1, &y1, &x, &y))
+        return NULL;
+
+    self->path->curve3(x1, y1, x, y);
+    
+    expandPaths(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject*
+path_curve4to(PathObject* self, PyObject* args)
+{
+    double x1, y1, x2, y2, x, y;
+    if (!PyArg_ParseTuple(args, "dddddd:curve4to", &x1, &y1, &x2, &y2, &x, &y))
         return NULL;
 
     self->path->curve4(x1, y1, x2, y2, x, y);
@@ -1943,6 +1971,8 @@ static PyMethodDef path_methods[] = {
     {"lineto", (PyCFunction) path_lineto, METH_VARARGS},
     {"rlineto", (PyCFunction) path_rlineto, METH_VARARGS},
     {"curveto", (PyCFunction) path_curveto, METH_VARARGS},
+	{"curve3to", (PyCFunction) path_curve3to, METH_VARARGS},
+	{"curve4to", (PyCFunction) path_curve4to, METH_VARARGS},
     {"rcurveto", (PyCFunction) path_rcurveto, METH_VARARGS},
     {"moveto", (PyCFunction) path_moveto, METH_VARARGS},
     {"rmoveto", (PyCFunction) path_rmoveto, METH_VARARGS},

@@ -332,41 +332,47 @@ def setup(ctx):
         flocks.append(flock)
     
 def draw(ctx):
-    ctx.background(0.2)
-    
-    #ctx.fill(0.8)
+    bg = ctx.background()
+    bg.fill_color = 0.2
+    ctx.add(bg)
     #ctx.fontsize(20)
     #w = ctx.textwidth("Statue")
     #ctx.text("Statue", WIDTH/2-w/2, HEIGHT/2)
 
-    # Update each flock.
+    ## Update each flock.
     global flocks
         
     for flock in flocks:
         flock.update(goal=40)
         
-        # Draw a grey arrow for each boid in a block.
-        # Radius and opacity depend on the boids z-position.
+        ## Draw a grey arrow for each boid in a block.
+        ## Radius and opacity depend on the boids z-position.
         for boid in flock:
             r = 10 + boid.z * 0.25
             alpha = 0.5 + boid.z*0.01
-            ctx.fill(0.6, 0.6, 0.6, alpha)
-            ctx.rotate(-boid.angle)
-            ctx.arrow(boid.x-r/2, boid.y-r/2, r)
-            ctx.reset()
+            s = shape()
+            arrow = s.arrow(boid.x-r/2, boid.y-r/2, r)
+            arrow.fill_color = (0.6, 0.6, 0.6, alpha)
+            arrow.stroke_color = (0.59, 0.59, 0.59, alpha)
+            arrow.stroke_width = 3
+            arrow.rotate(-boid.angle)
+            ctx.add(arrow)
 
 
 def main():
-    ctx = Context(width=500, height=500)
+    ctx = Canvas(width=500, height=500)
     #ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
 
     setup(ctx)
     draw(ctx)
-    
-    ctx.save('test_images/boids.png')
+    ctx.draw()
+    ctx.show()
+    #ctx.save('test_images/boids.png')
 
 
 
 if __name__ == "__main__":
-    from pypaint.context import  Context
+    from pypaint.canvas import Canvas
+    from pypaint.shape import shape
+
     main()

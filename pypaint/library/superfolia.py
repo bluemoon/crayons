@@ -48,7 +48,7 @@ def root(x, y, angle=0, depth=5, alpha=1.0, decay=0.005):
             dy = y + sin(radians(angle)) * w
             
             # Oval dropshadow.
-            ctx.nostroke()
+            #ctx.nostroke()
             ctx.fill(0, 0, 0, alpha*0.25)
             ctx.oval(x-w/6+depth, y-w/6+depth, w/3, w/3)
  

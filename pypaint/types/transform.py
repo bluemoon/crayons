@@ -173,15 +173,8 @@ class Transform(object):
 
                     elif mode == 'center':
                         # apply existing transform to centerpoint
-                        deltax, deltay = m.transform_point(centerx, centery)
-                        x, y = args
-                        m1 = Matrix()
-                        m2 = Matrix()
-                        m1.translate(-deltax, -deltay)
-                        m2.translate(deltax, deltay)
-                        m *= m1
-                        m *= cairo.Matrix(x,0,0,y,0,0)
-                        m *= m2
+                        #deltax, deltay = m.transform_point(centerx, centery)
+                        m += Matrix((x, 0, 0, y, 0, 0))
 
                 elif cmd == 'skew':
                     if mode == 'corner':

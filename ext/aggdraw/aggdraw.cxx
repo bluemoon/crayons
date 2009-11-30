@@ -1792,13 +1792,41 @@ path_rlineto(PathObject* self, PyObject* args)
     return Py_None;
 }
 
-
-
 static PyObject*
 path_curveto(PathObject* self, PyObject* args)
 {
     double x1, y1, x2, y2, x, y;
     if (!PyArg_ParseTuple(args, "dddddd:curveto", &x1, &y1, &x2, &y2, &x, &y))
+        return NULL;
+
+    self->path->curve4(x1, y1, x2, y2, x, y);
+    
+    expandPaths(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject*
+path_curve3to(PathObject* self, PyObject* args)
+{
+    double x1, y1, x2, y2, x, y;
+    if (!PyArg_ParseTuple(args, "dddd:curve3to", &x1, &y1, &x, &y))
+        return NULL;
+
+    self->path->curve3(x1, y1, x, y);
+    
+    expandPaths(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject*
+path_curve4to(PathObject* self, PyObject* args)
+{
+    double x1, y1, x2, y2, x, y;
+    if (!PyArg_ParseTuple(args, "dddddd:curve4to", &x1, &y1, &x2, &y2, &x, &y))
         return NULL;
 
     self->path->curve4(x1, y1, x2, y2, x, y);
@@ -1943,6 +1971,8 @@ static PyMethodDef path_methods[] = {
     {"lineto", (PyCFunction) path_lineto, METH_VARARGS},
     {"rlineto", (PyCFunction) path_rlineto, METH_VARARGS},
     {"curveto", (PyCFunction) path_curveto, METH_VARARGS},
+	{"curve3to", (PyCFunction) path_curve3to, METH_VARARGS},
+	{"curve4to", (PyCFunction) path_curve4to, METH_VARARGS},
     {"rcurveto", (PyCFunction) path_rcurveto, METH_VARARGS},
     {"moveto", (PyCFunction) path_moveto, METH_VARARGS},
     {"rmoveto", (PyCFunction) path_rmoveto, METH_VARARGS},

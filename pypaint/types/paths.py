@@ -1,5 +1,6 @@
-from pypaint.types.mixins     import *
-#from pypaint.geometry.bezier  import *
+from pypaint.types.mixins           import *
+from pypaint.geometry.bezier        import *
+from pypaint.interfaces.PIL.path    import PathWrap
 
 class BezierPath(Grob, TransformMixin, ColorMixin):
     stateAttributes = ('_fillcolor', '_strokecolor', '_strokewidth', '_transform', '_transformmode')
@@ -7,7 +8,7 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
     
     def __init__(self, ctx, path=None, **kwargs):
         self._ctx = ctx
-
+        
         super(BezierPath, self).__init__(ctx)
         TransformMixin.__init__(self)
         ColorMixin.__init__(self, **kwargs)
@@ -16,7 +17,7 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
             copy_attrs(self._ctx, self, self.stateAttributes)
 
         if path is None:
-            self._path = None
+            self._path = PathWrap()
         else:
             self._path = path
        
@@ -38,10 +39,6 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
 
         self.closed = False
 
-    def _get_path(self):
-        return self._path
-
-    path = property(_get_path)
 
     def __getitem__(self, index):
         return self.data[index]
@@ -69,6 +66,13 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
 
     def curveto(self, c1x, c1y, c2x, c2y, x, y):
         self.data.append(PathElement(CURVETO, c1x, c1y, c2x, c2y, x, y))
+
+    def curve3to(self, c1x, c1y, x, y):
+        self.data.append(PathElement(CURVE3TO, c1x, c1y, x, y))
+
+    def curve4to(self, c1x, c1y, c2x, c2y, x, y):
+        self.data.append(PathElement(CURVE4TO, c1x, c1y, c2x, c2y, x, y))
+
 
     def relmoveto(self, x, y):
         self.data.append(PathElement(RMOVETO, x, y))
@@ -155,6 +159,9 @@ class BezierPath(Grob, TransformMixin, ColorMixin):
 
             elif cmd == RCURVETO:
                 X1, Y1, X2, Y2, X3, Y3 = values
+
+                #calculateQuadraticBounds((X1, Y1), (X2, Y2), (X3, Y3))
+
                 X_set.append(X)
                 Y_set.append(Y)
                 X_set.append(X+X1)
@@ -325,6 +332,8 @@ class PathElement:
             self.x, self.y = self.values
         elif cmd == CURVETO or cmd == RCURVETO:
             self.c1x, self.c1y, self.c2x,self.c2y, self.x, self.y = self.values
+        elif cmd == CURVE3TO:
+            self.c1x, self.c1y, self.x, self.y = self.values
         elif cmd == CLOSE:
             self.x = self.y = self.c1x = self.c1y = self.c2x = self.c2y = None
         elif cmd == ARC:
@@ -354,9 +363,10 @@ class PathElement:
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
+    
     def getXY(self):
         return self.values
+    XY = property(getXY)
 
 
 

@@ -55,7 +55,6 @@ class Color(object):
             else:
                 ra = 1
             
-            print type(args)
             self.r, self.g, self.b, self.a = args[0]/ra, args[0]/ra, args[0]/ra, 1
             
         # Two values, grayscale and alpha.
@@ -65,7 +64,6 @@ class Color(object):
             else:
                 ra = 1
 
-            print type(args[0])
             self.r, self.g, self.b, self.a = args[0]/ra, args[0]/ra, args[0]/ra, args[1]/ra
             
         # Three to five parameters, either RGB, RGBA, HSB, HSBA, CMYK, CMYKA
@@ -216,4 +214,127 @@ class Color(object):
         
         raise AttributeError, "'"+str(self.__class__)+"' object has no attribute '"+a+"'"
 
+    def darken(self, step=0.1):
+        return Color(self.h, self.s, self.brightness-step, self.a, mode="hsb", name="")
+        
+    def lighten(self, step=0.1):
+        return Color(self.h, self.s, self.brightness+step, self.a, mode="hsb", name="")
+
+    def desaturate(self, step=0.1):
+        return Color(self.h, self.s-step, self.brightness, self.a, mode="hsb", name="")
+
+    def saturate(self, step=0.1):
+        return Color(self.h, self.s+step, self.brightness, self.a, mode="hsb", name="")
+
+    def adjust_rgb(self, r=0.0, g=0.0, b=0.0, a=0.0):
+        return Color(self.r+r, self.g+g, self.b+b, self.a+a, mode="rgb", name="")
+
+    def adjust_hsb(self, h=0.0, s=0.0, b=0.0, a=0.0):
+        return Color((self.h+h)%1.0, self.s+s, self.brightness+b, self.a+a, mode="hsb", name="")
+
+    def adjust_contrast(self, step=0.1):
+        if self.brightness <= 0.5:
+            return self.darken(step)
+        else:
+            return self.lighten(step)
     
+    def rotate_rgb(self, angle=180):
+        h = (self.h + 1.0*angle/360)%1
+        return Color(h, self.s, self.brightness, self.a, mode="hsb", name="")
+    
+    def rotate_ryb(self, angle=180):
+
+        """ Returns a color rotated on the artistic RYB color wheel.
+        
+        An artistic color wheel has slightly different opposites
+        (e.g. purple-yellow instead of purple-lime).
+        It is mathematically incorrect but generally assumed
+        to provide better complementary colors.
+    
+        http://en.wikipedia.org/wiki/RYB_color_model
+    
+        """
+
+        h = self.h * 360
+        angle = angle % 360
+
+        # Approximation of Itten's RYB color wheel.
+        # In HSB, colors hues range from 0-360.
+        # However, on the artistic color wheel these are not evenly distributed. 
+        # The second tuple value contains the actual distribution.
+        wheel = [
+            (  0,   0), ( 15,   8),
+            ( 30,  17), ( 45,  26),
+            ( 60,  34), ( 75,  41),
+            ( 90,  48), (105,  54),
+            (120,  60), (135,  81),
+            (150, 103), (165, 123),
+            (180, 138), (195, 155),
+            (210, 171), (225, 187),
+            (240, 204), (255, 219),
+            (270, 234), (285, 251),
+            (300, 267), (315, 282),
+            (330, 298), (345, 329),
+            (360, 0  )
+        ]
+    
+        # Given a hue, find out under what angle it is
+        # located on the artistic color wheel.
+        for i in _range(len(wheel)-1):
+            x0, y0 = wheel[i]    
+            x1, y1 = wheel[i+1]
+            if y1 < y0:
+                y1 += 360
+            if y0 <= h <= y1:
+                a = 1.0 * x0 + (x1-x0) * (h-y0) / (y1-y0)
+                break
+    
+        # And the user-given angle (e.g. complement).
+        a = (a+angle) % 360
+
+        # For the given angle, find out what hue is
+        # located there on the artistic color wheel.
+        for i in range(len(wheel)-1):
+            x0, y0 = wheel[i]    
+            x1, y1 = wheel[i+1]
+            if y1 < y0:
+                y1 += 360
+            if x0 <= a <= x1:
+                h = 1.0 * y0 + (y1-y0) * (a-x0) / (x1-x0)
+                break
+    
+        h = h % 360
+        return Color(h/360, self.s, self.brightness, self.a, mode="hsb", name="")
+    complement = property(rotate_ryb)
+
+    @property
+    def is_black(self):
+        if self.r == self.g == self.b < 0.08:
+            return True
+        return False
+        
+    @property
+    def is_white(self):
+        if self.r == self.g == self.b == 1:
+            return True
+        return False
+    
+    @property
+    def is_grey(self):
+        if self.r == self.g == self.b: 
+            return True
+        return False
+        
+    is_gray = is_grey
+    
+    @property
+    def is_transparent(self):
+        if self.a == 0:
+            return True
+        return False
+
+    @property
+    def hex(self):
+        r, g, b = [int(n * 255) for n in (self.r, self.g, self.b)]
+        s = "#%2x%2x%2x" % (r, g, b)
+        return s.replace(" ", "0")

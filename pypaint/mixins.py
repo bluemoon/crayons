@@ -1,40 +1,8 @@
 from pypaint.utils.defaults      import *
-from pypaint.types.transform     import Transform
+from pypaint.geometry.transform  import Transform
 from pypaint.types.color         import Color
 
-import Queue
-
-_STATE_NAMES = {
-    '_outputmode':    'outputmode',
-    '_colorrange':    'colorrange',
-    '_fillcolor':     'fill',
-    '_strokecolor':   'stroke',
-    '_strokewidth':   'strokewidth',
-    '_transform':     'transform',
-    '_transformmode': 'transformmode',
-    '_fontname':      'font',
-    '_fontsize':      'fontsize',
-    '_align':         'align',
-    '_lineheight':    'lineheight',
-}
-
-def copy_attr(v):
-    if v is None:
-        return None
-    elif hasattr(v, "copy"):
-        return v.copy()
-    elif isinstance(v, list):
-        return list(v)
-    elif isinstance(v, tuple):
-        return tuple(v)
-    elif isinstance(v, (int, str, unicode, float, bool, long)):
-        return v
-    else:
-        raise Exception("Don't know how to copy '%s'." % v)
-
-def copy_attrs(source, target, attrs):
-    for attr in attrs:
-        setattr(target, attr, copy_attr(getattr(source, attr)))
+import math
 
 class Point(object):
     def __init__(self, *args):
@@ -114,82 +82,101 @@ class TransformMixin(object):
     def reset(self):
         self._transform = Transform()
 
-    def rotate(self, degrees=0, radians=0):
-        self._transform.rotate(-degrees,-radians)
+    def rotate(self, degrees=0, radians=0, transform_type='center'):
+        if transform_type == 'corner':
+            deltax, deltay = self._transform.transformPoint((0,0))
+        elif transform_type == 'center':
+            deltax, deltay = self._transform.transformPoint(self.center)
+            
+        if degrees:
+            C = math.cos((math.pi/180.0)*degrees)
+            S = math.sin((math.pi/180.0)*degrees)
+
+        self._transform *= Transform(C, S, -S, C, deltax-(C*deltax)+(S*deltay),deltay-(S*deltax)-(C*deltay))
 
     def translate(self, x=0, y=0):
-        self._transform.translate(x,y)
+        self._transform *= Transform(dx=x, dy=y)
 
     def scale(self, x=1, y=None):
         self._transform.scale(x,y)
 
     def skew(self, x=0, y=0):
         self._transform.skew(x,y)
-        
+
+    def point(self, point):
+        return self._transform.transformPoint(point)
+
+    def matrix_with_center(self):
+        pass
+
 class ColorMixin(object):
     """Mixin class for color support.
     Adds the _fillcolor, _strokecolor and _strokewidth attributes to the class."""
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        #if hasattr(args[0], '_fillcolor'):
+        #    self._fillcolor = attr._fillcolor
+        #if hasattr(args[0], '_strokecolor'):
+        #    self._strokecolor = attr._strokecolor
+
         try:
             self._fillcolor = Color(kwargs['fill'], mode='rgb', color_range=1)
         except KeyError:
-            if self._ctx._fillcolor:
-                self._fillcolor = self._ctx._fillcolor.copy()
-            else:
-                self._fillcolor = None
-        
+            self._fillcolor = None
         try:
             self._strokecolor = Color(kwargs['stroke'], mode='rgb', color_range=1)
         except KeyError:
-            if self._ctx._strokecolor:
-                self._strokecolor = self._ctx._strokecolor.copy()
-            else:
-                self._strokecolor = None
-        self._strokewidth = kwargs.get('strokewidth', 1.0)
+            self._strokecolor = None
 
+        self._strokewidth = kwargs.get('strokewidth', 1.0)
     
     def _get_fill(self):
         return self._fillcolor
     def _set_fill(self, *args):
-        self._fillcolor = Color(mode='rgb', color_range=1, *args)
-    fill = property(_get_fill, _set_fill)
+        if len(args) == 1 and isinstance(args[0], tuple):
+            self._fillcolor = Color(*args[0])
+        else:
+            self._fillcolor = Color(*args)
+    fill_color = property(_get_fill, _set_fill)
 
     
     def _get_stroke(self):
         return self._strokecolor
+
     def _set_stroke(self, *args):
-        self._strokecolor = Color(self._ctx, *args)
-    stroke = property(_get_stroke, _set_stroke)
+        if len(args) == 1:
+            self._strokecolor = Color(*args[0])
+        else:
+            self._strokecolor = Color(*args)
+    stroke_color = property(_get_stroke, _set_stroke)
     
     def _get_strokewidth(self):
         return self._strokewidth
+
     def _set_strokewidth(self, strokewidth):
         self._strokewidth = max(strokewidth, 0.0001)
+
     stroke_width = property(_get_strokewidth, _set_strokewidth)
 
-class RestoreCtx(Grob):
-    def __init__(self, ctx, **kwargs):
-        self._ctx = ctx
+
 
 class CanvasMixin:
     def __init__(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         self.width  = width
         self.height = height
 
-        self.grobstack = []
+        self.data = []
         self.font_size = 12
 
         self.clear()
-        self.grobStack = Queue.PriorityQueue()
 
     def add(self, grob, priority=3):
         if not isinstance(grob, Grob):
             raise ("Canvas.add() - wrong argument: expecting a Grob, received %s") % (grob)
 
-        self.grobStack.put((priority, grob))
+        self.data.append(grob)
 
     def append(self, grob):
-        self.add(self, grob)
+        self.data.append(grob)
 
     def setsurface(self):
         pass
@@ -205,8 +192,6 @@ class CanvasMixin:
 
     size = property(_get_size)
 
-    def append(self, el):
-        self._container.append(el)
 
     def draw(self, ctx=None):
         pass
@@ -215,4 +200,51 @@ class CanvasMixin:
         pass
 
     def clear(self):
-        self.grobStack = Queue.PriorityQueue()
+        self.data = []
+
+
+class GeometryMixin:
+    def updateBounds(self, bounds, (x, y), min=min, max=max):
+        """Return the bounding recangle of rectangle bounds and point (x, y)."""
+        xMin, yMin, xMax, yMax = bounds
+        return min(xMin, x), min(yMin, y), max(xMax, x), max(yMax, y)
+
+    def quadBounds(self, pt1, pt2, pt3):
+        pt1, pt2, pt3 = numpy.array((pt1, pt2, pt3))
+        c = pt1
+        b = (pt2 - c) * 2.0
+        a = pt3 - c - b
+
+        ## calc first derivative
+        ax, ay = a * 2
+        bx, by = b
+        roots = []
+        
+        if ax != 0:
+            roots.append(-bx/ax)
+        if ay != 0:
+            roots.append(-by/ay)
+
+        points = [a*t*t + b*t + c for t in roots if 0 <= t < 1] + [pt1, pt3]
+        xMin, yMin = numpy.minimum.reduce(points)
+        xMax, yMax = numpy.maximum.reduce(points)
+        return (xMin, yMin, xMax, yMax)
+
+    def cubicBounds(self, pt1, pt2, pt3, pt4):
+         pt1, pt2, pt3, pt4 = numpy.array((pt1, pt2, pt3, pt4))
+         d = pt1
+         c = (pt2 - d) * 3.0
+         b = (pt3 - pt2) * 3.0 - c
+         a = pt4 - d - c - b
+         ax, ay = a * 3.0
+         bx, by = b * 2.0
+         cx, cy = c
+         xRoots = [t for t in solveQuadratic(ax, bx, cx) if 0 <= t < 1]
+         yRoots = [t for t in solveQuadratic(ay, by, cy) if 0 <= t < 1]
+         roots = xRoots + yRoots
+    
+         points = [(a*t*t*t + b*t*t + c * t + d) for t in roots] + [pt1, pt4]
+         xMin, yMin = numpy.minimum.reduce(points)
+         xMax, yMax = numpy.maximum.reduce(points)
+         return (xMin, yMin, xMax, yMax)
+

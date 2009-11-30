@@ -1,14 +1,11 @@
 from pypaint.interfaces.PIL.helper  import PILHelper
 from pypaint.interfaces.PIL.context import PILContext
-from pypaint.interfaces.PIL.path    import PathWrap
 from pypaint.types.transform        import Transform
 from pypaint.types.text             import Text
-from pypaint.types.text             import BezierPen
-from pypaint.types.paths            import BezierPath
+from pypaint.path                   import path
 from pypaint.utils.defaults         import *
-from pypaint.types.mixins           import *
+from pypaint.mixins                 import *
 from pypaint.utils.util             import *
-from pypaint                        import ft2
 
 from fontTools.ttLib                import TTFont
 
@@ -38,159 +35,65 @@ class PILCanvas(CanvasMixin):
         self.AGG_canvas.flush()
         self.canvas.save(filename, file_ext)
         
-    def draw(self, ctx=None):
-        if not ctx:
-            ctx = self.context
+    def draw(self, stack=None):
+        for item in stack:
+            item.matrix_with_center()
+            self.AGG_canvas.settransform(item.transform)
+            if isinstance(item, path):
+                n_path = Path()
+                for element in item.data:
+                    cmd    = element[0]
+                    values = element[1:]
+                    
+                    if cmd == MOVETO:
+                        n_path.moveto(*values)
+                    elif cmd == LINETO:
+                        n_path.lineto(*values)
+                    elif cmd == CURVETO:
+                        n_path.curveto(*values)
+                    elif cmd == CURVE3TO:
+                        n_path.curve3to(*values)
+                    elif cmd == CURVE4TO:
+                        n_path.curve4to(*values)
+                    elif cmd == RLINETO:
+                        n_path.rlineto(*values)
+                    elif cmd == RCURVETO:
+                        n_path.rcurveto(*values)
+                    elif cmd == ARC:
+                        n_path.curveto(*values)
+                    elif cmd == CLOSE:
+                        n_path.close()
+                    elif cmd == ELLIPSE:
+                        x, y, w, h = values
+                        k = 0.5522847498    
+                        n_path.moveto(x, y+h/2)
+                        n_path.curveto(x, y+(1-k)*h/2, x+(1-k)*w/2, y, x+w/2, y)
+                        n_path.curveto(x+(1+k)*w/2, y, x+w, y+(1-k)*h/2, x+w, y+h/2)
+                        n_path.curveto(x+w, y+(1+k)*h/2, x+(1+k)*w/2, y+h,x+w/2, y+h)
+                        n_path.curveto(x+(1-k)*w/2, y+h, x, y+(1+k)*h/2, x, y+h/2)
+                        n_path.close()
 
-        ## Draws things
-        while not self.grobStack.empty():
-            (priority, item) = self.grobStack.get()
+                    else:
+                        raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
 
-            #if isinstance(item, ClippingPath):
-            #    deltax, deltay = item.center
-            #    m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-            #    self.drawclip(item, ctx)
+                arguments = self.buildPenBrush(item, templateArgs=n_path)
+                self.AGG_canvas.path(*arguments)
+                self.AGG_canvas.flush()
 
-            if isinstance(item, RestoreCtx):
-                ctx.restore()
-            else:
-                if isinstance(item, BezierPath):
-                    deltax, deltay = item.center
-                    m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-                    self.AGG_canvas.settransform(tuple(m))
-                    self.drawpath(item, ctx)
-
-                elif isinstance(item, Text):
-                    x, y = item.metrics[0:2]
-                    deltax, deltay = item.center
-                    m = item._transform.getMatrixWCenter(deltax, deltay-item.baseline, item._transformmode)
-                    #ctx.transform(m)
-                    #ctx.translate(item.x, item.y - item.baseline)
-                    self.AGG_canvas.settransform(tuple(m))
-
-                    self.draw_text(item, ctx)
-
-                elif isinstance(item, Image):
-                    deltax, deltay = item.center
-                    m = item._transform.getMatrixWCenter(deltax, deltay, item._transformmode)
-                    ctx.transform(m)
-                    self.drawimage(item, ctx)
-
-            self.grobStack.task_done()
-
-    def draw_text(self, text, ctx=None):
-        #_font = TTFont(text._fontfile)
-        #glyphName = text.text
-        #glyphSet = _font.getGlyphSet()
-
-        #pen = BezierPen(glyphSet, text.path)
-	#self.drawpath(pen.path)
-        #g = glyphSet[glyphName]
-	#g.draw(pen)
-        font = Font(0.8, text._fontfile, size=text._fontsize)
-        self.AGG_canvas.text((text.x, text.y), text.text, font)
-        self.AGG_canvas.flush()
-
-    def drawclip(self, path, ctx=None):
-        '''Passes the path to a Cairo context.'''
-        if not isinstance(path, ClippingPath):
-            raise Exception("drawpath(): Expecting a ClippingPath, got %s" % path)
-
-        if not ctx:
-            ctx = self._context
-
-        for element in path.data:
-            cmd = element[0]
-            values = element[1:]
-
-            # apply cairo context commands
-            if cmd == MOVETO:
-                ctx.move_to(*values)
-            elif cmd == LINETO:
-                ctx.line_to(*values)
-            elif cmd == CURVETO:
-                ctx.curve_to(*values)
-            elif cmd == RLINETO:
-                ctx.rel_line_to(*values)
-            elif cmd == RCURVETO:
-                ctx.rel_curve_to(*values)
-            elif cmd == CLOSE:
-                ctx.close_path()
-            elif cmd == ELLIPSE:
-                x, y, w, h = values
-                ctx.save()
-                ctx.translate (x + w / 2., y + h / 2.)
-                ctx.scale (w / 2., h / 2.)
-                ctx.arc (0., 0., 1., 0., 2 * pi)
-                ctx.restore()
-
-            else:
-                raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
-
-        ctx.restore()
-        ctx.clip()
-    
-    def drawpath(self, path, ctx=None):
-        strokeWidth = None
-        strokeColor = None
-        ellipse     = False
-
-        if not isinstance(path, BezierPath):
-            raise Exception("drawpath(): Expecting a BezierPath, got %s" % (path))
-
-        
-        if isinstance(path.path, PathWrap):
-            path.path.initPath()
-            nPath = path.path.path
-        else:
-            return
-
-        for element in path.data:
-            cmd    = element[0]
-            values = element[1:]
-
-            if cmd == MOVETO:
-                nPath.moveto(*values)
-
-            elif cmd == LINETO:
-                nPath.lineto(*values)
-
-            elif cmd == CURVETO:
-                nPath.curveto(*values)
-
-            elif cmd == RLINETO:
-                nPath.rlineto(*values)
-
-            elif cmd == RCURVETO:
-                nPath.rcurveto(*values)
-
-            elif cmd == ARC:
-                nPath.curveto(*values)
-
-            elif cmd == CLOSE:
-                nPath.close()
-
-            elif cmd == ELLIPSE:
-                x, y, w, h = values
-
-                k = 0.5522847498    
-                nPath.moveto(x, y+h/2)
-                nPath.curveto(x, y+(1-k)*h/2, x+(1-k)*w/2, y, x+w/2, y)
-                nPath.curveto(x+(1+k)*w/2, y, x+w, y+(1-k)*h/2, x+w, y+h/2)
-                nPath.curveto(x+w, y+(1+k)*h/2, x+(1+k)*w/2, y+h,x+w/2, y+h)
-                nPath.curveto(x+(1-k)*w/2, y+h, x, y+(1+k)*h/2, x, y+h/2)
-                nPath.close()
+            elif isinstance(item, text):
+                x, y = item.bounds
+                deltax, deltay = item.center
+                #m = item._transform.getMatrixWCenter(deltax, deltay-item.line_height, item._transformmode)
+                #ctx.transform(m)
+                #ctx.translate(item.x, item.y - item.baseline)
+                self.AGG_canvas.settransform(tuple(m))
                 
-                ## ctx.translate(x + w / 2., y + h / 2.)
-                ## ctx.scale (w / 2., h / 2.)
-                ## ctx.arc (0., 0., 1., 0., 2 * pi)
-                ## ctx.restore()
-            else:
-                raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
-
-        arguments = self.buildPenBrush(path, templateArgs=nPath)
-        self.AGG_canvas.path(*arguments)
-        self.AGG_canvas.flush()
+                R, G, B, A = text._fillcolor
+                R = int(R/1.0*255)
+                G = int(G/1.0*255)
+                B = int(B/1.0*255)
+                font = Font((R, G, B), text._fontfile, size=text._fontsize)
+                self.AGG_canvas.text((text.x, text.y), text.text, font)
 
     def buildPenBrush(self, path, templateArgs=None):
         if templateArgs:
@@ -202,17 +105,17 @@ class PILCanvas(CanvasMixin):
         PenDict       = {}
         brush         = None
 
-        if path._fillcolor:
+        if hasattr(path, "_fillcolor") and path._fillcolor:
             (R, G, B, A) = self.helper.decToRgba(path._fillcolor)
             color = (R, G, B)
             brush = Brush(color, opacity=A)
 
-        if path._strokecolor:
+        if hasattr(path, "_strokecolor") and path._strokecolor:
             (R, G, B, A) = self.helper.decToRgba(path._strokecolor)
             PenDict["color"]   = (R, G, B)
             PenDict["opacity"] = A
             
-        if path._strokewidth:
+        if hasattr(path, "_strokewidth"):
             PenDict["width"] = path._strokewidth
 
         if PenDict.has_key("color"):
@@ -223,4 +126,5 @@ class PILCanvas(CanvasMixin):
         
         arguments = tuple(PathArgs)
         return arguments
+
 

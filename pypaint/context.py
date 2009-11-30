@@ -66,6 +66,10 @@ class Context:
     def snapshot(self, filename=None):
         pass
 
+    def show(self):
+        self.canvas.draw()
+        self.canvas.show()
+
     def save(self, filename=None):
         #self.canvas.flush()
         self.canvas.draw()
@@ -539,7 +543,8 @@ class Context:
         Draws a string of text according to current font settings.
         '''
         path = self.BezierPath(None)
-        txt = self.Text(txt, x, y, width, height, path=path, **kwargs)
+        txt = self.Text(txt, x, y, path=path, **kwargs)
+
         if outline:
           path = txt.path
           if draw:

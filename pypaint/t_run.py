@@ -1,11 +1,31 @@
-from pypaint.context          import *
-from pypaint.utils.p_random   import random
+from pypaint.canvas import Canvas
+from pypaint.path   import path
+from pypaint.shape  import shape
 
-ctx = Context(width=300, height=300)
 
-ctx.stroke(0.2)
-ctx.fontsize(10)
-ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
-ctx.text("hi hi", 100, 100)
+canvas = Canvas(600, 600)
+shape  = shape()
 
-ctx.save('temp.png')
+
+arrow = shape.arrow(200, 100)
+arrow.fill_color = (0.2)
+arrow.rotate(90)
+
+canvas.add(arrow)
+canvas.draw()
+canvas.show()
+
+#ctx = Context(width=600, height=600)
+
+#ctx.translate(300, 300)
+#ctx.scale(0.04)
+#ctx.nofill()
+#ctx.fill(0.4)
+#ctx.strokewidth(1)
+#ctx.fontsize(60)
+#ctx.font(fontpath="/home/bluemoon/Desktop/148Tipos/148Tipos/Top 80/TrueType/Akzidenz Grotesk/Akzidenz Grotesk CE Light Bold.ttf")
+
+#ctx.text("Gofuckyourself", 0, 300)
+
+#ctx.show()
+#ctx.save('temp.png')
