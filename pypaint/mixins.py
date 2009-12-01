@@ -4,26 +4,6 @@ from pypaint.types.color         import Color
 
 import math
 
-class Point(object):
-    def __init__(self, *args):
-        if len(args) == 2:
-            self.x, self.y = args
-        elif len(args) == 1:
-            self.x, self.y = args[0]
-        elif len(args) == 0:
-            self.x = self.y = 0.0
-        else:
-            raise NodeBoxError, "Wrong initializer for Point object"
-
-    def __repr__(self):
-        return "Point(x=%.3f, y=%.3f)" % (self.x, self.y)
-        
-    def __eq__(self, other):
-        if other is None: return False
-        return self.x == other.x and self.y == other.y
-        
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 class Grob(object):
     """A GRaphic OBject is the base class for all DrawingPrimitives."""

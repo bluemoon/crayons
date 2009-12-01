@@ -26,10 +26,13 @@ class PILCanvas(CanvasMixin):
         self.context     = PILContext()
         
         self.AGG_canvas.setantialias(True)
-
+    
     def show(self, *arguments):
         self.AGG_canvas.flush()
         self.canvas.show()
+
+    def gtk(self):
+        return self.canvas
         
     def output(self, filename, file_ext):
         self.AGG_canvas.flush()

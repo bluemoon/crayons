@@ -23,3 +23,6 @@ class Canvas(CanvasMixin):
         s = shape()
         rect = s.rectangle(0, 0, self.width, self.height)
         return rect
+
+    def gtk(self):
+        return self.backend.gtk()

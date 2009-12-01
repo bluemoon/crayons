@@ -9,7 +9,7 @@ shape  = shape()
 
 arrow = shape.arrow(200, 100)
 arrow.fill_color = (0.2)
-arrow.rotate(90)
+arrow.rotate(100)
 
 canvas.add(arrow)
 canvas.draw()

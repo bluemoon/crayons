@@ -321,7 +321,7 @@ def flock(n, x, y, w, h, ctx):
     return Boids(n, x, y, w, h, ctx)
 
 
-def setup(ctx):    
+def setup():    
     # Create 3 flocks each with 10 boids.
     # Each flock crowds around the center of the canvas.
     global flocks
@@ -331,7 +331,8 @@ def setup(ctx):
         flock.goal(WIDTH/2, HEIGHT/2, 0)
         flocks.append(flock)
     
-def draw(ctx):
+def draw():
+    ctx = Canvas(width=500, height=500)
     bg = ctx.background()
     bg.fill_color = 0.2
     ctx.add(bg)
@@ -353,26 +354,36 @@ def draw(ctx):
             s = shape()
             arrow = s.arrow(boid.x-r/2, boid.y-r/2, r)
             arrow.fill_color = (0.6, 0.6, 0.6, alpha)
-            arrow.stroke_color = (0.59, 0.59, 0.59, alpha)
-            arrow.stroke_width = 3
+
             arrow.rotate(-boid.angle)
             ctx.add(arrow)
 
+    ctx.draw()
+    return ctx.gtk()
+
 
 def main():
-    ctx = Canvas(width=500, height=500)
-    #ctx.font(fontpath="/home/bluemoon/Projects/shoebot-19b6b98eb602/assets/notcouriersans.ttf")
+    setup()
+    draw()
+    pyApp(callback=draw, width=WIDTH, height=HEIGHT)
 
-    setup(ctx)
-    draw(ctx)
-    ctx.draw()
-    ctx.show()
+    #ctx.draw()
+    #ctx.show()
     #ctx.save('test_images/boids.png')
 
 
 
 if __name__ == "__main__":
     from pypaint.canvas import Canvas
-    from pypaint.shape import shape
+    from pypaint.shape  import shape
+    from pypaint.pygtk  import pyApp
+
+    #import cProfile
+    #import pstats
+
+    #cProfile.run('main()', 'boid_cProfile')
+    #p = pstats.Stats('boid_cProfile')
+    #p.sort_stats('time').print_stats()
+
 
     main()
