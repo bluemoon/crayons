@@ -110,12 +110,19 @@ class ColorMixin(object):
         self._strokewidth = kwargs.get('strokewidth', 1.0)
     
     def _get_fill(self):
-        return self._fillcolor
+        if self._fillcolor:
+            return self._fillcolor
+        else:
+            print self._fillcolor
+
     def _set_fill(self, *args):
         if len(args) == 1 and isinstance(args[0], tuple):
             self._fillcolor = Color(*args[0])
+        elif len(args) == 1 and isinstance(args[0], Color):
+            self._fillcolor = args[0]
         else:
             self._fillcolor = Color(*args)
+    
     fill_color = property(_get_fill, _set_fill)
 
     
@@ -123,8 +130,10 @@ class ColorMixin(object):
         return self._strokecolor
 
     def _set_stroke(self, *args):
-        if len(args) == 1:
+        if len(args) == 1 and isinstance(args[0], tuple):
             self._strokecolor = Color(*args[0])
+        elif len(args) == 1 and isinstance(args[0], Color):
+            self._strokecolor = args[0]
         else:
             self._strokecolor = Color(*args)
     stroke_color = property(_get_stroke, _set_stroke)

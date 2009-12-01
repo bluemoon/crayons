@@ -3,10 +3,10 @@ from pypaint.interfaces.PIL.context import PILContext
 from pypaint.types.transform        import Transform
 from pypaint.types.text             import Text
 from pypaint.path                   import path
+from pypaint.text                   import text
 from pypaint.utils.defaults         import *
 from pypaint.mixins                 import *
 from pypaint.utils.util             import *
-
 from fontTools.ttLib                import TTFont
 
 from PIL      import Image
@@ -14,7 +14,6 @@ from uuid     import uuid4
 from aggdraw  import *
 
 import os
-
 
 class PILCanvas(CanvasMixin):
     def __init__(self, width=None, height=None):
@@ -40,7 +39,6 @@ class PILCanvas(CanvasMixin):
         
     def draw(self, stack=None):
         for item in stack:
-            item.matrix_with_center()
             self.AGG_canvas.settransform(item.transform)
             if isinstance(item, path):
                 n_path = Path()
@@ -84,19 +82,25 @@ class PILCanvas(CanvasMixin):
                 self.AGG_canvas.flush()
 
             elif isinstance(item, text):
-                x, y = item.bounds
-                deltax, deltay = item.center
+
+                #x, y = item.bounds
+                #deltax, deltay = item.center
                 #m = item._transform.getMatrixWCenter(deltax, deltay-item.line_height, item._transformmode)
                 #ctx.transform(m)
                 #ctx.translate(item.x, item.y - item.baseline)
-                self.AGG_canvas.settransform(tuple(m))
-                
-                R, G, B, A = text._fillcolor
+                # self.AGG_canvas.settransform(tuple(m))
+                (R, G, B, A)= item.fill_color
                 R = int(R/1.0*255)
                 G = int(G/1.0*255)
                 B = int(B/1.0*255)
-                font = Font((R, G, B), text._fontfile, size=text._fontsize)
-                self.AGG_canvas.text((text.x, text.y), text.text, font)
+
+                File = item.font_file
+                size = item.font_size
+
+                font = Font((R, G, B), File, size)
+
+                self.AGG_canvas.settransform(item.transform)
+                self.AGG_canvas.text((item.X, item.Y), item.Text, font)
 
     def buildPenBrush(self, path, templateArgs=None):
         if templateArgs:

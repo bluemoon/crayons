@@ -2,10 +2,6 @@ from pypaint.utils import util
 
 class Color(object):
     '''
-    Taken from Nodebox colors library and modified.
-    Since we have no Cocoa, we have no way to use colour management for the moment.
-    So we took another approach.
-
     Attributes:
     r, g, b (0-1)
     hue, saturation, lightness (0-1)

@@ -18,11 +18,20 @@ class Canvas(CanvasMixin):
 
     def save(self, filename, file_ext):
         self.backend.save(filename, file_ext)
-        
+
+    @property
+    def width(self):
+        return self.width
+
+
+    @property
+    def height(self):
+        return self.height
+
     def background(self):
         s = shape()
         rect = s.rectangle(0, 0, self.width, self.height)
         return rect
-
+    
     def gtk(self):
         return self.backend.gtk()
