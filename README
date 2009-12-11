@@ -7,3 +7,5 @@ Install:
   # sudo python setup.py install
 
   
+Aggdraw modifications:
+  # support for quadratic and cubic beziers.
