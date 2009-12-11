@@ -6,6 +6,7 @@ from pypaint.path                   import path
 from pypaint.text                   import text
 from pypaint.utils.defaults         import *
 from pypaint.mixins                 import *
+from pypaint.grid                   import Grid
 from pypaint.utils.util             import *
 from fontTools.ttLib                import TTFont
 
