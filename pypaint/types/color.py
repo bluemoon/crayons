@@ -219,6 +219,9 @@ class Color(object):
     def desaturate(self, step=0.1):
         return Color(self.h, self.s-step, self.brightness, self.a, mode="hsb", name="")
 
+    def sub_alpha(self, step=0.1):
+        return Color(self.h, self.s, self.brightness, self.a-step, mode="hsb", name="")
+
     def saturate(self, step=0.1):
         return Color(self.h, self.s+step, self.brightness, self.a, mode="hsb", name="")
 

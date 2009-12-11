@@ -1,6 +1,12 @@
-from pypaint.context         import Context
 from pypaint.utils.p_random  import random
 from math                    import *
+from pypaint.shape           import shape
+from pypaint.canvas          import Canvas
+from pypaint.path            import path
+from pypaint.pygtk           import paint_gtk
+
+WIDTH, HEIGHT = (500, 500)
+frame = 0
 
 class Food:
     def __init__(self, x, y, size):
@@ -81,7 +87,6 @@ class Ant:
         self.vx += random(-d, d)
         self.vy += random(-d, d)
         
-        print self.vx
 
         self.wandering += 1
 
@@ -177,14 +182,14 @@ class Colony(list):
         
         for i in range(n):
             self.append(Ant(self, x, y))
-                             
+            
         self.x = x
         self.y = y
         self.r = r
 
 def colony(n, x, y, r):
     return Colony(n, x, y, r)
-    
+
 def food(x, y, size):
     return Food(x, y, size)
 
@@ -203,47 +208,46 @@ def demo_setup():
         
         colony.foodsources.append(food(x, y, s))
     
-def demo_draw(ctx):
+def draw():
     global colony
-    
-    ctx.fill(0.2)
-    ctx.rect(0, 0, WIDTH, HEIGHT)
-    
+
+    ctx = Canvas(width=500, height=500, gtk_draw=True)
+    bg = ctx.background()
+    bg.fill_color = 0.2
+    ctx.add(bg)
+
     ## Draw the hoarded food in the colony.
-    ctx.fill(0.3)
+    shapes = shape()
+
     s = colony.food
-    ctx.oval(colony.x-s/2, colony.y-s/2, s, s)
-    
+    oval = shapes.oval(colony.x-s/2, colony.y-s/2, s, s)
+    oval.fill_color = (0.3)
+
+    ctx.add(oval)
+
     ## Draw each foodsource in green.
     ## Watch it shrink as the ants eat away its size parameter!
-    ctx.fill(0.6, 0.8, 0, 0.1)
-
     for f in colony.foodsources:
-        ctx.oval(f.x-f.size/2, f.y-f.size/2, f.size, f.size)
+        oval = shapes.oval(f.x-f.size/2, f.y-f.size/2, f.size, f.size)
+        oval.fill_color = (0.6, 0.8, 0, 0.1)
+        ctx.add(oval)
     
     for ant in colony:
-        ctx.stroke(0.8, 0.8, 0.8, 1.0)
-        ctx.strokewidth(0.5)
-        ctx.nofill()
-        ctx.autoclosepath(False)
-        
+        p = path()
         ## Draw the pheromone trail for each ant.
         ## Ants leave a trail of scent from the foodsource,
         ## enabling other ants to find the food as well!
         if len(ant.trail) > 0:
-            ctx.beginpath(ant.trail[0].x, ant.trail[0].y)
-
-            for p in trail: 
-                ctx.lineto(p.x, p.y)
+            p.moveto(ant.trail[0].x, ant.trail[0].y)
+            for k in ant.trail: 
+                p.lineto(k.x, k.y)
                 
-            ctx.endpath()
+        p.stroke_color = (0.8, 0.8, 0.8, 1.0)
+        p.stroke_width = (0.5)
         
-        ## Change ant color when carrying food.
-        ctx.nostroke()
-        ctx.fill(0.8, 0.8, 0.8, 0.5)
+        ctx.add(p)
 
-        if ant.has_food: 
-            ctx.fill(0.6, 0.8, 0)
+        ## Change ant color when carrying food.
         
         ## The main ant behaviour:
         ## 1) follow an encountered trail,
@@ -251,22 +255,22 @@ def demo_draw(ctx):
         ## 3) bring food back to colony,
         ## 4) wander aimlessly
         ant.forage()
-        ctx.oval(ant.x, ant.y, 3, 3)
+        oval = shapes.oval(ant.x, ant.y, 3, 3)
+        if ant.has_food: 
+            oval.fill_color = (0.6, 0.8, 0)
+        else:
+            oval.fill_color = (0.8, 0.8, 0.8, 0.5)
 
+        ctx.add(oval)
+
+    ctx.draw()
+    return ctx.gtk()
 
 def main():
-    ctx = Context()
-
-    global WIDTH
-    global HEIGHT 
-    
-    WIDTH  = ctx.Width()
-    HEIGHT = ctx.Height()
-
     demo_setup()
-    demo_draw(ctx)
+    draw()
 
-    ctx.save('temp.png')
+    paint_gtk(callback=draw, width=500, height=500)
 
 if __name__ == "__main__":
     main()

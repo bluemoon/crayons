@@ -1183,6 +1183,12 @@ draw_tostring(DrawObject* self, PyObject* args)
         (char*) self->buffer_data, self->buffer_size
         );
 }
+static PyObject* draw_tobuffer(DrawObject* self, PyObject* args){
+  if (!PyArg_ParseTuple(args, ":tobuffer"))
+      return NULL;
+
+  return PyBuffer_FromMemory((void *)self->buffer_data, self->buffer_size);
+}
 
 static PyObject*
 draw_clear(DrawObject* self, PyObject* args)
@@ -1303,6 +1309,7 @@ static PyMethodDef draw_methods[] = {
 
     {"fromstring", (PyCFunction) draw_fromstring, METH_VARARGS},
     {"tostring", (PyCFunction) draw_tostring, METH_VARARGS},
+    {"tobuffer", (PyCFunction) draw_tobuffer, METH_VARARGS},
 
     {NULL, NULL}
 };

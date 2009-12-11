@@ -2,7 +2,7 @@ from pypaint.utils.util          import *
 from pypaint.types.mixins        import *
 from pypaint.types.paths         import BezierPath
 from pypaint.types.paths         import PathElement
-from pypaint                     import ft2
+
 from pypaint.geometry.points     import Point_Set
 from pypaint.geometry.bezier     import *
 from pypaint.geometry.transform  import *

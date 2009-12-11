@@ -111,7 +111,7 @@ class text(Grob, TransformMixin, ColorMixin):
         self.fonts = {}
         self.font_by_name = {}
         self.find_fonts()
-        self.fontsize = 12
+        self.fontsize = 10
 
         if font_name and self.font_by_name.has_key(font_name):
             self.fontfile = self.font_by_name[font_name]
@@ -147,12 +147,14 @@ class text(Grob, TransformMixin, ColorMixin):
         return self.text
 
     @property
-    def font_size(self):
-        return self.fontsize
-
-    @property
     def font_file(self):
         return self.fontfile
+
+    @property
+    def metrics(self):
+        tmp_draw = Draw("RGB", (800, 600), "white")
+        font = Font('black', self.fontfile, size=self.fontsize)
+        return tmp_draw.textsize(self.text, font)
 
     def _get_font_size(self):
         return self.fontsize

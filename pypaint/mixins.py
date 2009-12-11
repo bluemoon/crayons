@@ -1,6 +1,7 @@
 from pypaint.utils.defaults      import *
 from pypaint.geometry.transform  import Transform
 from pypaint.types.color         import Color
+from pypaint.styles              import style
 
 import math
 
@@ -42,7 +43,7 @@ class TransformMixin(object):
         
     def _reset(self):
         self._transform = Transform()
-        self._transformmode = CENTER
+        self._transformmode = 'center'
         
     def _get_transform(self):
         return self._transform
@@ -62,10 +63,10 @@ class TransformMixin(object):
     def reset(self):
         self._transform = Transform()
 
-    def rotate(self, degrees=0, radians=0, transform_type='center'):
-        if transform_type == 'corner':
-            deltax, deltay = self._transform.transformPoint((0,0))
-        elif transform_type == 'center':
+    def rotate(self, degrees=0, radians=0):
+        if self._transformmode == 'corner':
+            deltax, deltay = self._transform.transformPoint((0, 0))
+        elif self._transformmode == 'center':
             deltax, deltay = self._transform.transformPoint(self.center)
             
         if degrees:
@@ -93,11 +94,6 @@ class ColorMixin(object):
     """Mixin class for color support.
     Adds the _fillcolor, _strokecolor and _strokewidth attributes to the class."""
     def __init__(self, *args, **kwargs):
-        #if hasattr(args[0], '_fillcolor'):
-        #    self._fillcolor = attr._fillcolor
-        #if hasattr(args[0], '_strokecolor'):
-        #    self._strokecolor = attr._strokecolor
-
         try:
             self._fillcolor = Color(kwargs['fill'], mode='rgb', color_range=1)
         except KeyError:
@@ -167,15 +163,6 @@ class CanvasMixin:
     def append(self, grob):
         self.data.append(grob)
 
-    def setsurface(self):
-        pass
-
-    def get_context(self):
-        return self._context
-
-    def get_surface(self):
-        return self._surface
-
     def _get_size(self):
         return self.width, self.height
 
@@ -191,6 +178,15 @@ class CanvasMixin:
     def clear(self):
         self.data = []
 
+class StyleMixin:
+    def __init__(self):
+        pass
+
+    def apply_style(self, current_style):
+        if isinstance(current_style, style):
+            pass
+            
+        
 
 class GeometryMixin:
     def updateBounds(self, bounds, (x, y), min=min, max=max):

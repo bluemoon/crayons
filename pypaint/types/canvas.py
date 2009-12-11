@@ -16,13 +16,14 @@ from aggdraw  import *
 import os
 
 class PILCanvas(CanvasMixin):
-    def __init__(self, width=None, height=None):
+    def __init__(self, width=None, height=None, gtk=False):
         CanvasMixin.__init__(self, width, height)
         
-        self.canvas      = Image.new("RGB", (width, height), "white")
+        self.canvas      = Image.new("RGBA", (width, height), "white")
         self.AGG_canvas  = Draw(self.canvas)
         self.helper      = PILHelper()
         self.context     = PILContext()
+        self.gtk_draw    = gtk
         
         self.AGG_canvas.setantialias(True)
     
@@ -31,10 +32,12 @@ class PILCanvas(CanvasMixin):
         self.canvas.show()
 
     def gtk(self):
-        return self.canvas
+        return self.AGG_canvas.tostring()
         
     def output(self, filename, file_ext):
-        self.AGG_canvas.flush()
+        if not self.gtk_draw:
+            self.AGG_canvas.flush()
+
         self.canvas.save(filename, file_ext)
         
     def draw(self, stack=None):
@@ -79,25 +82,17 @@ class PILCanvas(CanvasMixin):
 
                 arguments = self.buildPenBrush(item, templateArgs=n_path)
                 self.AGG_canvas.path(*arguments)
-                self.AGG_canvas.flush()
+
+                if not self.gtk_draw:
+                    self.AGG_canvas.flush()
 
             elif isinstance(item, text):
-
-                #x, y = item.bounds
-                #deltax, deltay = item.center
-                #m = item._transform.getMatrixWCenter(deltax, deltay-item.line_height, item._transformmode)
-                #ctx.transform(m)
-                #ctx.translate(item.x, item.y - item.baseline)
-                # self.AGG_canvas.settransform(tuple(m))
                 (R, G, B, A)= item.fill_color
                 R = int(R/1.0*255)
                 G = int(G/1.0*255)
                 B = int(B/1.0*255)
 
-                File = item.font_file
-                size = item.font_size
-
-                font = Font((R, G, B), File, size)
+                font = Font((R, G, B), item.font_file, item.font_size)
 
                 self.AGG_canvas.settransform(item.transform)
                 self.AGG_canvas.text((item.X, item.Y), item.Text, font)

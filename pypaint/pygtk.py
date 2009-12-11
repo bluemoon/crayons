@@ -1,14 +1,12 @@
 import Image
-import cStringIO
+import StringIO
 import gtk
 import gobject
 import time
-import threading
 
-gtk.gdk.threads_init()
-class pyApp(gtk.Window):
-    def __init__(self, width=100, height=100, callback=None, timer_rate=20, one_frame=False, threaded=False):
-        super(pyApp, self).__init__()
+class paint_gtk(gtk.Window):
+    def __init__(self, width=100, height=100, callback=None, timer_rate=50, one_frame=False, threaded=False):
+        super(paint_gtk, self).__init__()
         
         self.callback    = callback
         self.timer_rate  = timer_rate
@@ -19,9 +17,6 @@ class pyApp(gtk.Window):
 
         self.main()
 
-        if threaded:
-            thr = threading.Thread(target=self.threaded)
-            thr.start()
         
         gtk.main()
 
@@ -38,7 +33,7 @@ class pyApp(gtk.Window):
         self.vbox.show()
 
         self.image = gtk.Image()
-        self.pixbuf = self.update_image(self.callback())
+        self.pixbuf = self.update2(self.callback())
         self.image.set_from_pixbuf(self.pixbuf)
         self.image.show()
 
@@ -47,23 +42,19 @@ class pyApp(gtk.Window):
         self.connect("destroy", gtk.main_quit)
         self.show()
 
-
-    def threaded(self):
-        while True:
-            self.image.set_from_pixbuf(self.update_image(self.callback()))
-            self.image.show()
-            time.sleep(self.timer_rate)
-
     def timer_cb(self):
         if self.window:
-            self.image.set_from_pixbuf(self.update_image(self.callback()))
+            self.image.set_from_pixbuf(self.update2(self.callback()))
             self.image.show()
             self.window.process_updates(True)
             return True
 
+    def update2(self, handle):
+        pixbuf = gtk.gdk.pixbuf_new_from_data(handle, gtk.gdk.COLORSPACE_RGB,  True, 8, self.width, self.height, self.width*4)
+        return pixbuf
 
     def update_image(self, pil_handle):
-        f_handle = cStringIO.StringIO()  
+        f_handle = StringIO.StringIO()  
         pil_handle.save(f_handle, "ppm")  
         contents = f_handle.getvalue()  
         f_handle.close()  

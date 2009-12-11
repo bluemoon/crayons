@@ -327,24 +327,23 @@ def setup():
     global flocks
     flocks = []
     for i in range(3):
-        flock = Boids(10, 0, 0, WIDTH, HEIGHT)
+        flock = Boids(2, 0, 0, WIDTH, HEIGHT)
         flock.goal(WIDTH/2, HEIGHT/2, 0)
+        flock.scatter(0.01)
+        flock.noperch()
         flocks.append(flock)
     
 def draw():
-    ctx = Canvas(width=500, height=500)
+    ctx = Canvas(width=500, height=500, gtk_draw=True)
     bg = ctx.background()
     bg.fill_color = 0.2
     ctx.add(bg)
-    #ctx.fontsize(20)
-    #w = ctx.textwidth("Statue")
-    #ctx.text("Statue", WIDTH/2-w/2, HEIGHT/2)
 
     ## Update each flock.
     global flocks
         
     for flock in flocks:
-        flock.update(goal=40)
+        flock.update(goal=60)
         
         ## Draw a grey arrow for each boid in a block.
         ## Radius and opacity depend on the boids z-position.
@@ -365,7 +364,7 @@ def draw():
 def main():
     setup()
     draw()
-    pyApp(callback=draw, width=WIDTH, height=HEIGHT)
+    paint_gtk(callback=draw, width=WIDTH, height=HEIGHT)
 
     #ctx.draw()
     #ctx.show()
@@ -376,14 +375,15 @@ def main():
 if __name__ == "__main__":
     from pypaint.canvas import Canvas
     from pypaint.shape  import shape
-    from pypaint.pygtk  import pyApp
+    from pypaint.pygtk  import paint_gtk
 
-    #import cProfile
-    #import pstats
+    '''
+    import cProfile
+    import pstats
 
-    #cProfile.run('main()', 'boid_cProfile')
-    #p = pstats.Stats('boid_cProfile')
-    #p.sort_stats('time').print_stats()
-
+    cProfile.run('main()', 'boid_cProfile')
+    p = pstats.Stats('boid_cProfile')
+    p.sort_stats('time').print_stats()
+    '''
 
     main()
