@@ -1,4 +1,5 @@
-pyPaint is a 2d drawing library with gtk support.
+pyPaint is a 2d drawing library with gtk support. This is built off a modified nodebox codebase,
+the majority of all the code is modified, very little if any of the interface is kept. Documentation coming soon.
 
 Install:
   # cd ext/aggdraw
