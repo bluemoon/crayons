@@ -1,11 +1,13 @@
 #include <rfftw.h>
 #include <stdio.h>
+#include <math.h>
 #include <Python.h>
+
 #include "structmember.h"
 
 /// Defines
 #define FFT(s, u)                                                  \
-  if (s==1) rfftwnd_one_real_to_complex(plan_rc, (fftw_real *)u, (fftw_complex *)u); \
+  if (s==1) rfftwnd_one_real_to_complex(plan_rc, (fftw_real *)u, (fftw_complex*)u); \
   else rfftwnd_one_complex_to_real(plan_cr, (fftw_complex *)u, (fftw_real *)u);
 #define floor(x) ((x)>=0.0?((int)(x)):(-((int)(1-(x)))))
 
@@ -14,9 +16,9 @@
 typedef struct {
   PyObject_HEAD
   // velocity field
-  fftw_real *u, *v, *u0, *v0;
+  double *u, *v, *u0, *v0;
   // user-induced forces
-  fftw_real *u_u0, *u_v0;
+  double *u_u0, *u_v0;
   //double * u;
   //double * v;
 
@@ -126,10 +128,9 @@ void new_solve(fluid_object *self, float visc){
   for (i=0; i<n*n; i++){
       u[i] += dt*u0[i]; 
       u0[i] = u[i];
-      
       v[i] += dt*v0[i]; 
       v0[i] = v[i];
-    }    
+  }
   
   for (x=0.5f/n, i=0; i<n; i++,x+=1.0f/n){
     for (y=0.5f/n, j=0; j<n; j++,y+=1.0f/n){
@@ -150,22 +151,22 @@ void new_solve(fluid_object *self, float visc){
     }    
   } 
 
-  for (i=0; i<n; i++) //* self->scale)
+  for (i=0; i<n; i++)
     for (j=0; j<n; j++){ 
       u0[i+(n+2)*j] = u[i+n*j]; 
       v0[i+(n+2)*j] = v[i+n*j];
     }
   
-  FFT(1,u0);
-  FFT(1,v0);
+  FFT(1, u0);
+  FFT(1, v0);
   
   for (i=0; i<=n; i+=2){
       x = 0.5f*i;
-      for ( j=0 ; j<n ; j++ ){
-          y = j<=n/2 ? (fftw_real)j : (fftw_real)j-n;
+      for (j=0; j<n; j++){
+          y = j<=n/2 ? (double)j : (double)j-n;
           r = x*x+y*y;
           if ( r==0.0f ) continue;
-          f = (fftw_real)exp(-r*dt*visc);
+          f = (double)exp(-r*dt*visc);
           U[0] = u0[i  +(n+2)*j]; V[0] = v0[i  +(n+2)*j];
           U[1] = u0[i+1+(n+2)*j]; V[1] = v0[i+1+(n+2)*j];
           
@@ -176,8 +177,8 @@ void new_solve(fluid_object *self, float visc){
         }    
     }
   
-  FFT(-1,u0); 
-  FFT(-1,v0);
+  FFT(-1, u0); 
+  FFT(-1, v0);
   
   f = 1.0/(n*n);
   for ( i=0 ; i<n ; i++ )
@@ -196,7 +197,7 @@ void stable_solve(fluid_object *self, float visc){
   float   dt  = self->dt;
 
   
-  float x, y, x0, y0, f, r, U[2], V[2], s, t;
+  double x, y, x0, y0, f, r, U[2], V[2], s, t;
   int i, j, i0, j0, i1, j1;
   
   for (i=0; i<n*n; i++ ){
@@ -265,6 +266,49 @@ void stable_solve(fluid_object *self, float visc){
     }
   }
 }
+void drag(fluid_object *self, double nx, double ny, double dnx, double dny){
+  int     xi;
+  int     yi;
+  double  len;
+  int     X, Y;
+  int n = self->dim;
+
+  
+  //printf("nx:%f ny:%f\n", nx, ny);
+
+  xi = (int)floor((float)(n + 1) * nx);
+  yi = (int)floor((float)(n + 1) * ny);
+  //printf("xi:%d yi:%d\n", xi, yi);
+
+  X = xi;
+  Y = yi;
+
+  if (X > (n - 1)) {
+    X = n - 1;
+  }
+  if (Y > (n - 1)) {
+    Y = n - 1;
+  }
+  if (X < 0) {
+    X = 0;
+  }
+  if (Y < 0) {
+    Y = 0;
+  }
+  printf("dnx:%f dny:%f\n", self->u_u0[Y * n + X], self->u_u0[Y * n + X]);
+  // Add force at the cursor location
+  len = sqrt(dnx * dnx + dny * dny);
+  if (len != 0.0){ 
+      dnx *= 0.1 / len;
+      dny *= 0.1 / len;
+  }
+
+  printf("X:%d Y:%d dnx:%f dny:%f pos:%d\n", X, Y, dnx, dny, (Y*n+X));
+  self->u_u0[Y * n + X] += dnx;
+  self->u_v0[Y * n + X] += dny;
+
+}
+
 void addValue(double *p_in, float x, float y, float v, int dim){
   // get fractional parts
   float fx = x-(int)x;
@@ -318,49 +362,46 @@ static PyObject *zero_boundary(fluid_object *self, PyObject *args){
 
 static PyObject *cFluid_add_force(fluid_object *self, PyObject *args){
   int n = self->dim;
-
-  double x;
-  double y;
-
+  float time, f, x0, y0;
   double x1;
   double y1;
   double x2;
   double y2;
-
-  float time, f, x0, y0;
-
-  double dx, dy, norm_x, norm_y;
-
+  double dx, dy;
 
   if (!PyArg_ParseTuple(args, "dddd|f", &x1, &y1, &x2, &y2, &time))
     return NULL;
 
-  dx = x1-x2;
-  dy = y1-y2;
-  
+  dx = x2-x1;
+  dy = y2-y1;
+
+
+  //if (x2 < x1) dx = x1-x2;
+  //if (y2 < y1) dy = y1-y2;       
   if(1){
     printf("X:%f Y:%f dX:%f dY:%f \n", x1, y1, dx, dy);
   }
 
-  int xi, yi, X, Y;
-  xi = (int)floor((float)(self->dim + 1) * x2);
-  yi = (int)floor((float)(self->dim + 1) * y2);
-  X = xi;
-  Y = yi;
+  double k = 0.0;
+  double c = sqrt((dx*dx) + (dy*dy));
+  while(k <= 100.0){
+    double cx = x1 - ((k/100.0) * (x1 - x2));
+    double cy = y1 - ((k/100.0) * (y1 - y2));
 
-  if (X > (n - 1)) {
-    X = n - 1;
-  }
-  if (Y > (n - 1)) {
-    Y = n - 1;
-  }
-  if (X < 0) {
-    X = 0;
-  }
-  if (Y < 0) {
-    Y = 0;
-  }
+    printf("cx:%f cy:%f\n", cx, cy);
 
+    double cdx = 0.1 - ((k/100.0) * (0.1 - dx));
+    double cdy = 0.1 - ((k/100.0) * (0.1 - dy));
+    
+    // don't draw the last position twice
+    if (cx == x2 && cy == y2 ) { break; }
+    drag(self, cx, 1-cy, cdx, (-1*cdy));
+    k +=  1/(c*2);
+  }
+  
+
+
+  /*
   float f_step = 0.025f; // steps along the stroke
   float r_step = 0.05f; // steps across circle
   float step_scale = f_step * r_step * r_step;
@@ -382,12 +423,15 @@ static PyObject *cFluid_add_force(fluid_object *self, PyObject *args){
           float r_drag = 0.06f * self->dim;
           float drag = 5.0f;
           
-          addValue(self->u_u0, x0*r_drag+xc, y0*r_drag+yc, dx*step_scale*drag, self->dim);
-          addValue(self->u_v0, x0*r_drag+xc, y0*r_drag+yc, dy*step_scale*drag, self->dim);
+          float ndx = 0.1 + f*(dx-0.1);
+          float ndy = 0.1 + f *(dy-0.1);
+          addValue(self->u_u0, x0*r_drag+xc, y0*r_drag+yc, ndx, self->dim);
+          addValue(self->u_v0, x0*r_drag+xc, y0*r_drag+yc, ndy, self->dim);
         }
       }
     }
   }
+  */
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -406,20 +450,27 @@ void vector_print(fluid_object *self){
 
 static PyObject *cFluid_solver(fluid_object *self, PyObject *args){
   float dt = 0.1f;
-  float visc = 0.001;
+  float visc = 0.001f;
   int i;
 
   for (i = 0; i < (self->dim * self->dim); i++) {
-    self->u_u0[i] *= 0.85;
-    self->u_v0[i] *= 0.85;
+    //self->u_u0[i] *= 0.85;
+    //self->u_v0[i] *= 0.85;
+
     self->u0[i] = self->u_u0[i];
     self->v0[i] = self->u_v0[i];
+
+    //printf("u0:%f v0:%f\n", self->u_u0, self->u_v0);
+    printf("u0:%f v0:%f\n", self->u0[i], self->v0[i]);
+
   }
 
   stable_solve(self, visc);
-  //zero_boundary(self, args);
+  zero_boundary(self, args);
   //vector_print(self);
+
   self->dt += dt;
+  printf("time:%f\n", self->dt);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -430,8 +481,13 @@ static PyObject *cFluid_new(PyObject *self_, PyObject *args){
   if (!PyArg_ParseTuple(args, "i|ii", &dim, &width, &height))
     return NULL;
 
+  init_FFT(dim);
+
+
   fluid_object *self;
   self = (fluid_object *)PyObject_NEW(fluid_object, &fluidType);
+  self->dt = 0.0f;
+
   self->u     = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
   self->v     = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
   self->u0    = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
@@ -441,9 +497,8 @@ static PyObject *cFluid_new(PyObject *self_, PyObject *args){
 
   
   //printf("malloc size: %d\n", (dim * 2 * (dim/2+1)));
-
   /// Initialize the table
-  init_FFT(dim);
+
 
   for (i = 0; i < (dim * dim); i++) {
     self->u[i] = self->v[i] = self->u0[i] = self->v0[i] = 0.0;
@@ -476,20 +531,20 @@ static PyObject *cFluid_vectors(fluid_object *self, PyObject *args){
   int n = (self->dim * self->dim);
 
   for(i=0; i<n; i++){
-    PyList_Append(U_tmp, PyFloat_FromDouble(self->u[i]));
+    PyList_Append(U_tmp, PyFloat_FromDouble((double)self->u[i]));
   }
   for(i=0; i<n; i++){
-    PyList_Append(V_tmp, PyFloat_FromDouble(self->v[i]));
+    PyList_Append(V_tmp, PyFloat_FromDouble((double)self->v[i]));
   }
 
   if(0){
     PyObject *V0_tmp  = PyList_New(0);
     PyObject *U0_tmp  = PyList_New(0);
     for(i=0; i<n; i++){
-      PyList_Append(U0_tmp, PyFloat_FromDouble(self->u0[i]));
+      PyList_Append(U0_tmp, PyFloat_FromDouble((double)self->u0[i]));
     }
     for(i=0; i<n; i++){
-      PyList_Append(V0_tmp, PyFloat_FromDouble(self->v0[i]));
+      PyList_Append(V0_tmp, PyFloat_FromDouble((double)self->v0[i]));
     }
     return Py_BuildValue("OOOO", U_tmp, V_tmp, U0_tmp, V0_tmp);
 
