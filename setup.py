@@ -7,7 +7,7 @@ from distutils.extension import Extension
 Geometry    = Extension("pypaint.cGeometry",     sources = ["ext/geometry/_geometry.c"])
 Pathmatics  = Extension("pypaint.cPathmatics",   sources = ["ext/pathmatics/path.c"])
 Supershape  = Extension("pypaint.cSuperformula", sources = ["ext/supershape/superformula.c"])
-Fluids      = Extension("pypaint.cFluid", sources = ["ext/fluid.c"], libraries=['fftw', 'rfftw'])
+Fluids      = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'])
 
 
 setup( 
