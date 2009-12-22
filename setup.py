@@ -46,7 +46,7 @@ Geometry    = Extension("pypaint.cGeometry",     sources = ["ext/geometry/_geome
 Pathmatics  = Extension("pypaint.cPathmatics",   sources = ["ext/pathmatics/path.c"])
 Supershape  = Extension("pypaint.cSuperformula", sources = ["ext/supershape/superformula.c"])
 
-modules = [Aggdraw, Geometry, Pathmatics, Supershape]
+modules     = [Aggdraw, Geometry, Pathmatics, Supershape]
 
 if FFTW:
     Fluids  = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'])
@@ -64,7 +64,7 @@ setup(
         'pypaint.interfaces.PIL',
         'pypaint.library', 
         ],
-    requires=['scipy (>=0.0)'],
+    requires=['scipy>=0.0', 'numpy>=0.0'],
     ext_modules=modules,
 )
 
