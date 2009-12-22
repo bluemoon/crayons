@@ -5,6 +5,8 @@ from distutils.core import setup
 from distutils.extension import Extension
 
 FREETYPE = False
+FFTW     = False
+
 FREETYPE_ROOT = "/usr"
 AGG_EXT = "ext/aggdraw/"
 
@@ -37,12 +39,17 @@ if FREETYPE:
 if sys.platform == "win32":
     agg_libraries.extend(["kernel32", "user32", "gdi32"])
 
+
+
 Aggdraw     = Extension("aggdraw", sources=agg_sources, libraries=agg_libraries, include_dirs=agg_include_dirs, library_dirs=agg_library_dirs)
 Geometry    = Extension("pypaint.cGeometry",     sources = ["ext/geometry/_geometry.c"])
 Pathmatics  = Extension("pypaint.cPathmatics",   sources = ["ext/pathmatics/path.c"])
 Supershape  = Extension("pypaint.cSuperformula", sources = ["ext/supershape/superformula.c"])
-Fluids      = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'])
 
+modules = [Aggdraw, Geometry, Pathmatics, Supershape]
+
+if FFTW:
+    Fluids  = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'])
 
 setup( 
     name = "pypaint",
@@ -58,7 +65,7 @@ setup(
         'pypaint.library', 
         ],
     requires=['scipy (>=0.0)'],
-    ext_modules=[Aggdraw, Geometry, Pathmatics, Supershape, Fluids],
+    ext_modules=modules,
 )
 
 #import nose
