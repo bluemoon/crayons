@@ -112,14 +112,13 @@ class path(Grob, TransformMixin, ColorMixin):
     contours = None
 
     def moveto(self, x, y):
-        self.current_point = (x, y)
-        self.data.append(PathElement(MOVETO, x, y))
+        self.data.append([MOVETO, x, y])
 
     def lineto(self, x, y):
-        self.data.append(PathElement(LINETO, x, y))
+        self.data.append([LINETO, x, y])
 
     def curveto(self, c1x, c1y, c2x, c2y, x, y):
-        self.data.append(PathElement(CURVETO, c1x, c1y, c2x, c2y, x, y))
+        self.data.append([CURVETO, c1x, c1y, c2x, c2y, x, y])
 
     def curve3to(self, c1x, c1y, x, y):
         self.data.append(PathElement(CURVE3TO, c1x, c1y, x, y))
@@ -127,25 +126,24 @@ class path(Grob, TransformMixin, ColorMixin):
     def curve4to(self, c1x, c1y, c2x, c2y, x, y):
         self.data.append(PathElement(CURVE4TO, c1x, c1y, c2x, c2y, x, y))
 
-
     def relmoveto(self, x, y):
         self.data.append(PathElement(RMOVETO, x, y))
 
     def rellineto(self, x, y):
-        self.data.append(PathElement(RLINETO, x, y))
+        self.data.append([RLINETO, x, y])
 
     def relcurveto(self, c1x, c1y, c2x, c2y, x, y):
         self.data.append(PathElement(RCURVETO, c1x, c1y, c2x, c2y, x, y))
 
     def arc(self, x, y, radius, angle1, angle2):
-        self.data.append(PathElement(ARC, x, y, radius, angle1, angle2))
+        self.data.append([ARC, x, y, radius, angle1, angle2])
 
     def closepath(self):
-        self.data.append(PathElement(CLOSE))
+        self.data.append([CLOSE])
         self.closed = True
 
     def ellipse(self,x,y,w,h):
-        self.data.append(PathElement(ELLIPSE, x, y, w, h))
+        self.data.append([ELLIPSE, x, y, w, h])
         self.closepath()
 
     def rect(self, x, y, w, h):

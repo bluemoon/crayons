@@ -17,7 +17,7 @@ from aggdraw  import *
 import os
 
 class PILCanvas(CanvasMixin):
-    def __init__(self, width=None, height=None, gtk=False):
+    def __init__(self, width=None, height=None, gtk=True):
         CanvasMixin.__init__(self, width, height)
         
         self.canvas      = Image.new("RGBA", (width, height), "white")

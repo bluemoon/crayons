@@ -2,6 +2,8 @@ from pypaint.types.mixins           import *
 from pypaint.geometry.bezier        import *
 from pypaint.interfaces.PIL.path    import PathWrap
 
+import collections
+
 class BezierPath(Grob, TransformMixin, ColorMixin):
     stateAttributes = ('_fillcolor', '_strokecolor', '_strokewidth', '_transform', '_transformmode')
     kwargs = ('fill', 'stroke', 'strokewidth')
@@ -324,31 +326,6 @@ class PathElement:
     def __init__(self, cmd, *args):
         self.cmd    = cmd
         self.values = args
-
-        if cmd == MOVETO or cmd == RMOVETO:
-            self.x, self.y = self.values
-            self.c1x = self.c1y = self.c2x = self.c2y = None
-        elif cmd == LINETO or cmd == RLINETO:
-            self.x, self.y = self.values
-        elif cmd == CURVETO or cmd == RCURVETO:
-            self.c1x, self.c1y, self.c2x,self.c2y, self.x, self.y = self.values
-        elif cmd == CURVE3TO:
-            self.c1x, self.c1y, self.x, self.y = self.values
-        elif cmd == CLOSE:
-            self.x = self.y = self.c1x = self.c1y = self.c2x = self.c2y = None
-        elif cmd == ARC:
-            self.x, self.y, self.radius, self.angle1, self.angle2 = self.values
-        elif cmd == ELLIPSE:
-            # it doesn't feel right having an "ellipse" element, but we need
-            # some cairo specific functions to draw it in draw_cairo()
-            self.x, self.y, self.w, self.h = self.values
-        else:
-            raise ShoebotError(_('Wrong initialiser for PathElement (got "%s")') % (cmd))
-
-    def __getitem__(self,key):
-        data = list(self.values)
-        data.insert(0, self.cmd)
-        return data[key]
 
     def __repr__(self):
         data = list(self.values)

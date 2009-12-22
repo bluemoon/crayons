@@ -7,8 +7,8 @@
 
 /// Defines
 #define FFT(s, u)                                                  \
-  if (s==1) rfftwnd_one_real_to_complex(plan_rc, (fftw_real *)u, (fftw_complex*)u); \
-  else rfftwnd_one_complex_to_real(plan_cr, (fftw_complex *)u, (fftw_real *)u);
+  if (s==1) rfftwnd_one_real_to_complex(self->plan_rc, (fftw_real *)u, (fftw_complex*)u); \
+  else rfftwnd_one_complex_to_real(self->plan_cr, (fftw_complex *)u, (fftw_real *)u);
 #define floor(x) ((x)>=0.0?((int)(x)):(-((int)(1-(x)))))
 
 
@@ -19,24 +19,19 @@ typedef struct {
   double *u, *v, *u0, *v0;
   // user-induced forces
   double *u_u0, *u_v0;
-  //double * u;
-  //double * v;
-
-  //double * u0;
-  //double * v0;
-
-  //double * u_u0;
-  //double * u_v0;
+  // density field for colour r
+  double *r, *r0;
+  // density field for colour g  
+  double *g, *g0;
+  // density field for colour b
+  double *b, *b0;
 
   float    dt;
   int      dim;
   double   scale;
 
-  double   last_x;
-  double   last_y;
-
-  double   last_delta_x;
-  double   last_delta_y;
+  rfftwnd_plan plan_rc;
+  rfftwnd_plan plan_cr;
 
 } fluid_object;
 
@@ -48,11 +43,13 @@ static PyObject *cFluid_new(PyObject *self_, PyObject *args);
 static void fluid_dealloc(fluid_object* self);
 static PyObject *cFluid_add_force(fluid_object *self, PyObject *args);
 static PyObject *cFluid_vectors(fluid_object *self, PyObject *args);
+static PyObject *cFluid_RGB(fluid_object *self, PyObject *args);
 static PyObject *cFluid_solver(fluid_object *self, PyObject *args);
 
 static PyMethodDef fluid_methods[] = {
   { "add_force", (PyCFunction) cFluid_add_force, METH_VARARGS|METH_KEYWORDS},
   { "vectors",   (PyCFunction) cFluid_vectors,   METH_VARARGS|METH_KEYWORDS},
+  { "rgb",       (PyCFunction) cFluid_RGB,   METH_VARARGS|METH_KEYWORDS},
   { "solve",     (PyCFunction) cFluid_solver,    METH_VARARGS|METH_KEYWORDS},
   {NULL, NULL}
 };
@@ -109,9 +106,9 @@ static PyTypeObject fluidType = {
 
 
 
-void init_FFT(int n){
-  plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
-  plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
+void init_FFT(fluid_object *self, int n){
+  self->plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
+  self->plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
 }
 
 void new_solve(fluid_object *self, float visc){
@@ -266,7 +263,37 @@ void stable_solve(fluid_object *self, float visc){
     }
   }
 }
-void drag(fluid_object *self, double nx, double ny, double dnx, double dny){
+void diffuse_matter(fluid_object *self){
+  double x, y, x0, y0, s, t;
+  int i, j, i0, j0, i1, j1;
+  int n = self->dim;
+
+  for (x=0.5f/n,i=0; i<n; i++,x+=1.0f/n) {
+    for (y=0.5f/n,j=0; j<n; j++,y+=1.0f/n) {
+      x0 = n*(x-self->dt*self->u[i+n*j])-0.5f; 
+      y0 = n*(y-self->dt*self->v[i+n*j])-0.5f;
+      i0 = floor(x0);
+      s = x0-i0;
+      i0 = (n+(i0%n))%n;
+      i1 = (i0+1)%n;
+      j0 = floor(y0);
+      t = y0-j0;
+      j0 = (n+(j0%n))%n;
+      j1 = (j0+1)%n;
+
+      self->r[i+n*j] = (1-s)*((1-t)*self->r0[i0+n*j0]+t*self->r0[i0+n*j1])+
+        s *((1-t)*self->r0[i1+n*j0]+t*self->r0[i1+n*j1]);
+
+      self->g[i+n*j] = (1-s)*((1-t)*self->g0[i0+n*j0]+t*self->g0[i0+n*j1])+
+        s *((1-t)*self->g0[i1+n*j0]+t*self->g0[i1+n*j1]);
+
+      self->b[i+n*j] = (1-s)*((1-t)*self->b0[i0+n*j0]+t*self->b0[i0+n*j1])+
+        s *((1-t)*self->b0[i1+n*j0]+t*self->b0[i1+n*j1]);
+    }   
+  }
+
+}
+void drag(fluid_object *self, double nx, double ny, double dnx, double dny, float rfactor, float gfactor, float bfactor){
   int     xi;
   int     yi;
   double  len;
@@ -275,7 +302,6 @@ void drag(fluid_object *self, double nx, double ny, double dnx, double dny){
 
   
   //printf("nx:%f ny:%f\n", nx, ny);
-
   xi = (int)floor((float)(n + 1) * nx);
   yi = (int)floor((float)(n + 1) * ny);
   //printf("xi:%d yi:%d\n", xi, yi);
@@ -295,7 +321,7 @@ void drag(fluid_object *self, double nx, double ny, double dnx, double dny){
   if (Y < 0) {
     Y = 0;
   }
-  printf("dnx:%f dny:%f\n", self->u_u0[Y * n + X], self->u_u0[Y * n + X]);
+  //printf("dnx:%f dny:%f\n", self->u_u0[Y*n+X], self->u_v0[Y*n+X]);
   // Add force at the cursor location
   len = sqrt(dnx * dnx + dny * dny);
   if (len != 0.0){ 
@@ -303,31 +329,19 @@ void drag(fluid_object *self, double nx, double ny, double dnx, double dny){
       dny *= 0.1 / len;
   }
 
-  printf("X:%d Y:%d dnx:%f dny:%f pos:%d\n", X, Y, dnx, dny, (Y*n+X));
+  //printf("X:%d Y:%d dnx:%f dny:%f pos:%d\n", X, Y, dnx, dny, (Y*n+X));
   self->u_u0[Y * n + X] += dnx;
   self->u_v0[Y * n + X] += dny;
 
+  self->r[Y * n + X] = 10.0f * rfactor; 
+  self->r0[Y * n + X] = self->r[Y * n + X];
+  self->g[Y * n + X] = 10.0f * gfactor; 
+  self->g0[Y * n + X] = self->g[Y * n + X];
+  self->b[Y * n + X] = 10.0f * bfactor; 
+  self->b0[Y * n + X] = self->b[Y * n + X];
+
 }
 
-void addValue(double *p_in, float x, float y, float v, int dim){
-  // get fractional parts
-  float fx = x-(int)x;
-  float fy = y-(int)y;
-  // get the corner cell (a)
-  int cell = ((int)x + (int)y*dim);
-  // get fractions of the values for each target cell
-  float ia = (1.0f-fy)*(1.0f-fx) * v;
-  float ib = (1.0f-fy)*(fx)      * v;
-  float ic = (fy)     *(1.0f-fx) * v;
-  float id = (fy)     *(fx)      * v;
-
-  /// printf("ia:%f\n", ia);
-  /// printf("p_in[cell]: %f\n", p_in[cell]);  
-  p_in[cell] += ia;
-  p_in[cell+1] += ib;
-  p_in[cell+dim] += ic;
-  p_in[cell+dim+1] += id;
-}
 
 
 static PyObject *zero_boundary(fluid_object *self, PyObject *args){
@@ -362,22 +376,29 @@ static PyObject *zero_boundary(fluid_object *self, PyObject *args){
 
 static PyObject *cFluid_add_force(fluid_object *self, PyObject *args){
   int n = self->dim;
-  float time, f, x0, y0;
+  float  accel_start = 0.0f;
+  float  accel_end   = 0.1f;
+  float  f, x0, y0;
   double x1;
   double y1;
   double x2;
   double y2;
   double dx, dy;
+  float r, g, b;
 
-  if (!PyArg_ParseTuple(args, "dddd|f", &x1, &y1, &x2, &y2, &time))
+  r = (float) (rand() % 255);
+  b = (float) (rand() % 255);
+  g = (float) (rand() % 255);
+  
+  if (!PyArg_ParseTuple(args, "dddd|fffff", &x1, &y1, &x2, &y2, &accel_start, &accel_end, &r, &g, &b))
     return NULL;
 
   dx = x2-x1;
   dy = y2-y1;
 
+  if (x2 < x1) dx = x1-x2;
+  if (y2 < y1) dy = y1-y2;
 
-  //if (x2 < x1) dx = x1-x2;
-  //if (y2 < y1) dy = y1-y2;       
   if(1){
     printf("X:%f Y:%f dX:%f dY:%f \n", x1, y1, dx, dy);
   }
@@ -387,51 +408,14 @@ static PyObject *cFluid_add_force(fluid_object *self, PyObject *args){
   while(k <= 100.0){
     double cx = x1 - ((k/100.0) * (x1 - x2));
     double cy = y1 - ((k/100.0) * (y1 - y2));
-
-    printf("cx:%f cy:%f\n", cx, cy);
-
-    double cdx = 0.1 - ((k/100.0) * (0.1 - dx));
-    double cdy = 0.1 - ((k/100.0) * (0.1 - dy));
-    
+    //printf("cx:%f cy:%f\n", cx, cy);
+    double cdx = accel_end - ((k/100.0) * (accel_end - accel_start));
+    double cdy = accel_end - ((k/100.0) * (accel_end - accel_start));
     // don't draw the last position twice
     if (cx == x2 && cy == y2 ) { break; }
-    drag(self, cx, 1-cy, cdx, (-1*cdy));
+    drag(self, cx, 1-cy, cdx, (-1*cdy), r, g, b);
     k +=  1/(c*2);
   }
-  
-
-
-  /*
-  float f_step = 0.025f; // steps along the stroke
-  float r_step = 0.05f; // steps across circle
-  float step_scale = f_step * r_step * r_step;
-
-  for (f = 0.0f; f<1.0f; f+=0.01f){
-    float xc = x1 + f *(x2-x1);
-    float yc = y1 + f *(y2-y1);
-    
-    for (x0 = -1.0f; x0 < 1.0f; x0+=r_step){
-      for (y0 = -1.0f; y0 < 1.0f;y0+=r_step){
-        /// Get coordinates relative to the center
-        float rr = sqrtf(x0*x0 + y0*y0);
-        if (rr < 1.0f){
-          /// Inside the circle
-          if (rr == 0.0f){
-            rr = r_step;
-          }
-
-          float r_drag = 0.06f * self->dim;
-          float drag = 5.0f;
-          
-          float ndx = 0.1 + f*(dx-0.1);
-          float ndy = 0.1 + f *(dy-0.1);
-          addValue(self->u_u0, x0*r_drag+xc, y0*r_drag+yc, ndx, self->dim);
-          addValue(self->u_v0, x0*r_drag+xc, y0*r_drag+yc, ndy, self->dim);
-        }
-      }
-    }
-  }
-  */
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -454,38 +438,36 @@ static PyObject *cFluid_solver(fluid_object *self, PyObject *args){
   int i;
 
   for (i = 0; i < (self->dim * self->dim); i++) {
-    //self->u_u0[i] *= 0.85;
-    //self->u_v0[i] *= 0.85;
-
+    self->u_u0[i] *= 0.85;
+    self->u_v0[i] *= 0.85;
     self->u0[i] = self->u_u0[i];
     self->v0[i] = self->u_v0[i];
-
-    //printf("u0:%f v0:%f\n", self->u_u0, self->u_v0);
-    printf("u0:%f v0:%f\n", self->u0[i], self->v0[i]);
-
+    self->r0[i] = 0.995 * self->r[i]; 
+    self->g0[i] = 0.995 * self->g[i]; 
+    self->b0[i] = 0.995 * self->b[i]; 
   }
-
-  stable_solve(self, visc);
+  diffuse_matter(self);
+  new_solve(self, visc);
   zero_boundary(self, args);
   //vector_print(self);
 
   self->dt += dt;
-  printf("time:%f\n", self->dt);
-
   Py_INCREF(Py_None);
   return Py_None;
 }
+
 static PyObject *cFluid_new(PyObject *self_, PyObject *args){
   int dim, i;
   int height, width = 0;
+
   if (!PyArg_ParseTuple(args, "i|ii", &dim, &width, &height))
     return NULL;
 
-  init_FFT(dim);
-
-
   fluid_object *self;
   self = (fluid_object *)PyObject_NEW(fluid_object, &fluidType);
+  init_FFT(self, dim);
+
+  // Make the delta time 0.0 so it doesnt make a NaN
   self->dt = 0.0f;
 
   self->u     = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
@@ -495,13 +477,18 @@ static PyObject *cFluid_new(PyObject *self_, PyObject *args){
   self->u_u0  = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
   self->u_v0  = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
 
-  
-  //printf("malloc size: %d\n", (dim * 2 * (dim/2+1)));
+  self->r   = (double *)malloc((dim * dim) * sizeof(double));
+  self->r0  = (double *)malloc((dim * dim) * sizeof(double));
+  self->g   = (double *)malloc((dim * dim) * sizeof(double));
+  self->g0  = (double *)malloc((dim * dim) * sizeof(double));
+  self->b   = (double *)malloc((dim * dim) * sizeof(double));
+  self->b0  = (double *)malloc((dim * dim) * sizeof(double));
+
   /// Initialize the table
-
-
   for (i = 0; i < (dim * dim); i++) {
-    self->u[i] = self->v[i] = self->u0[i] = self->v0[i] = 0.0;
+    self->u[i] = self->v[i] = self->u0[i] = self->v0[i] = self->u_u0[i] = \
+      self->u_v0[i] = self->r[i] = self->r0[i] = self->g[i] = self->g0[i] =\
+      self->b[i] = self->b0[i] = 0.0;
   }
 
   self->dim = dim;
@@ -521,7 +508,30 @@ static void fluid_dealloc(fluid_object* self){
   free(self->v0);
   free(self->u_u0);
   free(self->u_v0);
+  free(self->r);
+  free(self->g);
+  free(self->b);
+  free(self->r0);
+  free(self->g0);
+  free(self->b0);
+}
 
+
+
+static PyObject *cFluid_RGB(fluid_object *self, PyObject *args){
+  int i;
+  PyObject *RGB_tmp  = PyList_New(0);
+  int n = (self->dim * self->dim);
+
+  for(i=0; i<n; i++){
+    PyObject *tmp  = PyList_New(0);
+    PyList_Append(tmp, PyFloat_FromDouble((double)self->r[i]/255.0));
+    PyList_Append(tmp, PyFloat_FromDouble((double)self->g[i]/255.0));
+    PyList_Append(tmp, PyFloat_FromDouble((double)self->b[i]/255.0));
+    PyList_Append(RGB_tmp, tmp);
+    
+  }
+  return RGB_tmp;
 }
 
 static PyObject *cFluid_vectors(fluid_object *self, PyObject *args){
@@ -547,7 +557,6 @@ static PyObject *cFluid_vectors(fluid_object *self, PyObject *args){
       PyList_Append(V0_tmp, PyFloat_FromDouble((double)self->v0[i]));
     }
     return Py_BuildValue("OOOO", U_tmp, V_tmp, U0_tmp, V0_tmp);
-
   } else{
     return Py_BuildValue("OO", U_tmp, V_tmp);
   }
