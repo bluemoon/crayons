@@ -4,6 +4,7 @@ import nose
 from distutils.core import setup
 from distutils.extension import Extension
 
+FREETYPE = False
 FREETYPE_ROOT = "/usr"
 AGG_EXT = "ext/aggdraw/"
 
@@ -24,13 +25,14 @@ agg_sources = [
     AGG_EXT+"aggdraw.cxx",
     ]
 
-agg_defines.append(("HAVE_FREETYPE2", None))
-agg_sources.extend([AGG_EXT+"agg2/font_freetype/agg_font_freetype.cpp",])
-agg_include_dirs.append(AGG_EXT+"agg2/font_freetype")
-agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include"))
-agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include/freetype2"))
-agg_library_dirs.append(os.path.join(FREETYPE_ROOT, "lib"))
-agg_libraries.append("freetype")
+if FREETYPE:
+    agg_defines.append(("HAVE_FREETYPE2", None))
+    agg_sources.extend([AGG_EXT+"agg2/font_freetype/agg_font_freetype.cpp",])
+    agg_include_dirs.append(AGG_EXT+"agg2/font_freetype")
+    agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include"))
+    agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include/freetype2"))
+    agg_library_dirs.append(os.path.join(FREETYPE_ROOT, "lib"))
+    agg_libraries.append("freetype")
 
 if sys.platform == "win32":
     agg_libraries.extend(["kernel32", "user32", "gdi32"])
