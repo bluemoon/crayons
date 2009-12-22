@@ -113,6 +113,10 @@ typedef struct {
 #endif
 } DrawObject;
 
+typedef struct {
+  PyObject_HEAD
+  
+} CanvasObj;
 /* glue functions (see the init function for details) */
 static PyObject* aggdraw_getcolor_obj;
 
