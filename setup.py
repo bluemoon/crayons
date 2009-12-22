@@ -64,7 +64,7 @@ setup(
         'pypaint.interfaces.PIL',
         'pypaint.library', 
         ],
-    requires=['scipy>=0.0', 'numpy>=0.0'],
+    requires=['scipy >= 0.0', 'numpy >= 0.0'],
     ext_modules=modules,
 )
 
