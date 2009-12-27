@@ -1,5 +1,6 @@
 from pypaint.types.paths import PathElement
 from pypaint.mixins      import *
+from aggdraw  import *
 
 class path(Grob, TransformMixin, ColorMixin):
     def __init__(self, path=None, **kwargs):
@@ -8,6 +9,8 @@ class path(Grob, TransformMixin, ColorMixin):
 
         if path is None:
             self.data = []
+
+        self.path = Path()
 
     def __setitem__(self, index, value):
         self.data[index] = value
@@ -112,38 +115,55 @@ class path(Grob, TransformMixin, ColorMixin):
     contours = None
 
     def moveto(self, x, y):
-        self.data.append([MOVETO, x, y])
+        self.path.moveto(x, y)     
+        #self.data.append([MOVETO, x, y])
 
     def lineto(self, x, y):
-        self.data.append([LINETO, x, y])
+        self.path.lineto(x, y)
+        #self.data.append([LINETO, x, y])
 
     def curveto(self, c1x, c1y, c2x, c2y, x, y):
-        self.data.append([CURVETO, c1x, c1y, c2x, c2y, x, y])
+        self.path.curveto(c1x, c1y, c2x, c2y, x, y)
+        #self.data.append([CURVETO, c1x, c1y, c2x, c2y, x, y])
 
     def curve3to(self, c1x, c1y, x, y):
-        self.data.append(PathElement(CURVE3TO, c1x, c1y, x, y))
+        self.path.curveto(c1x, c1y, x, y)
+        #self.data.append(PathElement(CURVE3TO, c1x, c1y, x, y))
 
     def curve4to(self, c1x, c1y, c2x, c2y, x, y):
-        self.data.append(PathElement(CURVE4TO, c1x, c1y, c2x, c2y, x, y))
+        self.path.curveto(c1x, c1y, c2x, c2y, x, y)
+        #self.data.append(PathElement(CURVE4TO, c1x, c1y, c2x, c2y, x, y))
 
     def relmoveto(self, x, y):
-        self.data.append(PathElement(RMOVETO, x, y))
+        #self.path.rlineto(x, y)
+        #self.data.append(PathElement(RMOVETO, x, y))
+        pass
 
     def rellineto(self, x, y):
-        self.data.append([RLINETO, x, y])
+        self.path.rlineto(x, y)
+        #self.data.append([RLINETO, x, y])
 
     def relcurveto(self, c1x, c1y, c2x, c2y, x, y):
-        self.data.append(PathElement(RCURVETO, c1x, c1y, c2x, c2y, x, y))
+        self.path.rcurveto(c1x, c1y, c2x, c2y, x, y)
+       # self.data.append(PathElement(RCURVETO, c1x, c1y, c2x, c2y, x, y))
 
     def arc(self, x, y, radius, angle1, angle2):
-        self.data.append([ARC, x, y, radius, angle1, angle2])
+        self.path.curveto(c1x, c1y, c2x, c2y, x, y)
+        #self.data.append([ARC, x, y, radius, angle1, angle2])
 
     def closepath(self):
-        self.data.append([CLOSE])
-        self.closed = True
+        self.path.close()
+        #self.data.append([CLOSE])
+        #self.closed = True
 
     def ellipse(self,x,y,w,h):
-        self.data.append([ELLIPSE, x, y, w, h])
+        k = 0.5522847498    
+        self.path.moveto(x, y+h/2)
+        self.path.curveto(x, y+(1-k)*h/2, x+(1-k)*w/2, y, x+w/2, y)
+        self.path.curveto(x+(1+k)*w/2, y, x+w, y+(1-k)*h/2, x+w, y+h/2)
+        self.path.curveto(x+w, y+(1+k)*h/2, x+(1+k)*w/2, y+h,x+w/2, y+h)
+        self.path.curveto(x+(1-k)*w/2, y+h, x, y+(1+k)*h/2, x, y+h/2)
+        self.path.close()
         self.closepath()
 
     def rect(self, x, y, w, h):

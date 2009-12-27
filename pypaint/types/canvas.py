@@ -17,7 +17,7 @@ from aggdraw  import *
 import os
 
 class PILCanvas(CanvasMixin):
-    def __init__(self, width=None, height=None, gtk=True):
+    def __init__(self, width=None, height=None, gtk=False):
         CanvasMixin.__init__(self, width, height)
         
         self.canvas      = Image.new("RGBA", (width, height), "white")
@@ -45,11 +45,10 @@ class PILCanvas(CanvasMixin):
         for item in stack:
             self.AGG_canvas.settransform(item.transform)
             if isinstance(item, path):
-                n_path = Path()
                 for element in item.data:
                     cmd    = element[0]
                     values = element[1:]
-                    
+                    """
                     if cmd == MOVETO:
                         n_path.moveto(*values)
                     elif cmd == LINETO:
@@ -80,8 +79,8 @@ class PILCanvas(CanvasMixin):
 
                     else:
                         raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
-
-                arguments = self.buildPenBrush(item, templateArgs=n_path)
+                        """
+                arguments = self.buildPenBrush(item, templateArgs=item.path)
                 self.AGG_canvas.path(*arguments)
 
                 if not self.gtk_draw:

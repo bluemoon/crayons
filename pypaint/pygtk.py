@@ -5,7 +5,7 @@ import gobject
 import time
 
 class paint_gtk(gtk.Window):
-    def __init__(self, width=100, height=100, callback=None, timer_rate=10, one_frame=False, threaded=False):
+    def __init__(self, width=100, height=100, callback=None, timer_rate=3, one_frame=False, threaded=False):
         super(paint_gtk, self).__init__()
         
         self.callback    = callback
@@ -16,8 +16,6 @@ class paint_gtk(gtk.Window):
         self.threaded    = threaded
 
         self.main()
-
-        
         gtk.main()
 
     def main(self):
@@ -49,7 +47,7 @@ class paint_gtk(gtk.Window):
             self.image.show()
             end = time.time()
 
-            print "fps: %f" % (1.0/(end-start))
+            #print "fps: %f" % (1.0/(end-start))
 
             self.window.process_updates(True)
             return True

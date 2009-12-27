@@ -11,6 +11,13 @@ class Canvas(CanvasMixin):
         self.width  = width
         self.height = height
         self.gtk_draw = gtk_draw
+        self.instant_draw = True
+
+    def add(self, object):
+        if self.instant_draw:
+            self.backend.draw(stack=[object])
+        else:
+            self.data.append(object)
 
     def draw(self):
         self.backend.draw(stack=self.data)
