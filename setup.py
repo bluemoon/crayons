@@ -1,7 +1,7 @@
 import os, sys
 import nose
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 
 FREETYPE = False
@@ -64,7 +64,7 @@ setup(
         'pypaint.interfaces.PIL',
         'pypaint.library', 
         ],
-    requires=['scipy', 'numpy'],
+    install_requires = ['scipy>=0.0', 'numpy>=0.0'],
     ext_modules=modules,
 )
 

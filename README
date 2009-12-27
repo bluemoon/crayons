@@ -2,10 +2,8 @@ pyPaint is a 2d drawing library with gtk support. This is built off a modified n
 the majority of all the code is modified, very little if any of the interface is kept. Documentation coming soon.
 
 Install:
-  # cd ext/aggdraw
   # sudo python setup.py install
-  # cd ../..
-  # sudo python setup.py install
+
 
   
 Aggdraw modifications:
