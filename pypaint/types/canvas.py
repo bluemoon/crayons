@@ -12,22 +12,24 @@ from fontTools.ttLib                import TTFont
 
 from PIL      import Image
 from uuid     import uuid4
-from aggdraw  import *
+import aggdraw 
 
 import os
+import numpy
 
 class PILCanvas(CanvasMixin):
     def __init__(self, width=None, height=None, gtk=False):
         CanvasMixin.__init__(self, width, height)
         
-        self.canvas      = Image.new("RGBA", (width, height), "white")
-        self.AGG_canvas  = Draw(self.canvas)
-        self.helper      = PILHelper()
-        self.context     = PILContext()
+        #self.canvas      = Image.new("RGBA", (width, height), "white")
+        self.AGG_canvas  = aggdraw.Draw("RGBA", (width, height), "white")
         self.gtk_draw    = gtk
         
-        self.AGG_canvas.setantialias(True)
-    
+        self.AGG_canvas.setantialias(False)
+
+    def reset_canvas(self, r, g, b):
+        self.AGG_canvas.clear((r, g, b))
+        
     def show(self, *arguments):
         self.AGG_canvas.flush()
         self.canvas.show()
@@ -42,18 +44,28 @@ class PILCanvas(CanvasMixin):
         self.canvas.save(filename, file_ext)
         
     def draw(self, stack=None):
+        ## for   = 0.373 per call
+        ## while = 0.441 per call
+        last_transform = None
         for item in stack:
-            self.AGG_canvas.settransform(item.transform)
-            if isinstance(item, path):
-                for element in item.data:
+            transform = item.transform
+            data = item.data
+            if last_transform != transform.affine:
+                self.AGG_canvas.settransform(transform)
+                last_transform = transform.affine
+
+            if path.type == 'path':
+                """
+                n_path = aggdraw.Path()
+                for element in data:
                     cmd    = element[0]
                     values = element[1:]
-                    """
-                    if cmd == MOVETO:
+                    
+                    if cmd == 'moveto':
                         n_path.moveto(*values)
-                    elif cmd == LINETO:
+                    elif cmd == 'lineto':
                         n_path.lineto(*values)
-                    elif cmd == CURVETO:
+                    elif cmd == 'curveto':
                         n_path.curveto(*values)
                     elif cmd == CURVE3TO:
                         n_path.curve3to(*values)
@@ -79,7 +91,7 @@ class PILCanvas(CanvasMixin):
 
                     else:
                         raise Exception("PathElement(): error parsing path element command (got '%s')" % cmd)
-                        """
+                """
                 arguments = self.buildPenBrush(item, templateArgs=item.path)
                 self.AGG_canvas.path(*arguments)
 
@@ -97,6 +109,13 @@ class PILCanvas(CanvasMixin):
                 self.AGG_canvas.settransform(item.transform)
                 self.AGG_canvas.text((item.X, item.Y), item.Text, font)
 
+    def decToRgba(self, RGBA):
+        R = int(RGBA.r * 255)
+        G = int(RGBA.g * 255)
+        B = int(RGBA.b * 255)
+        A = int(RGBA.a * 255)
+        return (R, G, B, A)
+
     def buildPenBrush(self, path, templateArgs=None):
         if templateArgs:
             PathArgs      = [templateArgs]
@@ -105,26 +124,26 @@ class PILCanvas(CanvasMixin):
 
         PenArguments  = []
         PenDict       = {}
-        brush         = None
+        brush = None
 
-        if hasattr(path, "_fillcolor") and path._fillcolor:
-            (R, G, B, A) = self.helper.decToRgba(path._fillcolor)
+        fillcolor = path._fillcolor
+        strokecolor = path._strokecolor
+        if fillcolor:
+            (R, G, B, A) = self.decToRgba(fillcolor)
             color = (R, G, B)
-            brush = Brush(color, opacity=A)
+            brush = aggdraw.Brush(color, opacity=A)
 
-        if hasattr(path, "_strokecolor") and path._strokecolor:
-            (R, G, B, A) = self.helper.decToRgba(path._strokecolor)
+        if strokecolor:
+            (R, G, B, A) = self.decToRgba(strokecolor)
             PenDict["color"]   = (R, G, B)
             PenDict["opacity"] = A
-            
-        if hasattr(path, "_strokewidth"):
-            PenDict["width"] = path._strokewidth
+        
+        PenDict["width"] = path._strokewidth
 
         if PenDict.has_key("color"):
-            PathArgs.append(Pen(**PenDict))
+            PathArgs.append(aggdraw.Pen(**PenDict))
         if brush:
             PathArgs.append(brush)
-        
         
         arguments = tuple(PathArgs)
         return arguments

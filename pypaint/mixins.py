@@ -37,19 +37,15 @@ class Grob(object):
 class TransformMixin(object):
     """Mixin class for transformation support.
     Adds the _transform and _transformmode attributes to the class."""
-    
+    transform = None
     def __init__(self):
         self._reset()
-        
+
     def _reset(self):
-        self._transform = Transform()
+        self.transform = Transform()
         self._transformmode = 'center'
-        
-    def _get_transform(self):
-        return self._transform
-    def _set_transform(self, transform):
-        self._transform = Transform(transform)
-    transform = property(_get_transform, _set_transform)
+    
+
     
     def _get_transformmode(self):
         return self._transformmode
@@ -58,10 +54,10 @@ class TransformMixin(object):
     transformmode = property(_get_transformmode, _set_transformmode)
         
     def translate(self, x, y):
-        self._transform.translate(x, y)
+        self.transform.translate(x, y)
         
     def reset(self):
-        self._transform = Transform()
+        self.transform = Transform()
 
     def rotate(self, degrees=0, radians=0):
         if self._transformmode == 'corner':
@@ -73,19 +69,19 @@ class TransformMixin(object):
             C = math.cos((math.pi/180.0)*degrees)
             S = math.sin((math.pi/180.0)*degrees)
 
-        self._transform *= Transform(C, S, -S, C, deltax-(C*deltax)+(S*deltay),deltay-(S*deltax)-(C*deltay))
+        self.transform *= Transform(C, S, -S, C, deltax-(C*deltax)+(S*deltay),deltay-(S*deltax)-(C*deltay))
 
     def translate(self, x=0, y=0):
-        self._transform *= Transform(dx=x, dy=y)
+        self.transform *= Transform(dx=x, dy=y)
 
     def scale(self, x=1, y=None):
-        self._transform.scale(x,y)
+        self.transform.scale(x,y)
 
     def skew(self, x=0, y=0):
-        self._transform.skew(x,y)
+        self.transform.skew(x,y)
 
     def point(self, point):
-        return self._transform.transformPoint(point)
+        return self.transform.transformPoint(point)
 
     def matrix_with_center(self):
         pass
@@ -104,6 +100,7 @@ class ColorMixin(object):
             self._strokecolor = None
 
         self._strokewidth = kwargs.get('strokewidth', 1.0)
+        
     
     def _get_fill(self):
         if self._fillcolor:
@@ -121,7 +118,14 @@ class ColorMixin(object):
     
     fill_color = property(_get_fill, _set_fill)
 
-    
+    def s_color(self, *args):
+        if len(args) == 1 and isinstance(args[0], tuple):
+            self._strokecolor = Color(*args[0])
+        elif len(args) == 1 and isinstance(args[0], Color):
+            self._strokecolor = args[0]
+        else:
+            self._strokecolor = Color(*args)
+
     def _get_stroke(self):
         return self._strokecolor
 
@@ -154,10 +158,7 @@ class CanvasMixin:
 
         self.clear()
 
-    def add(self, grob, priority=3):
-        if not isinstance(grob, Grob):
-            raise ("Canvas.add() - wrong argument: expecting a Grob, received %s") % (grob)
-
+    def add(self, grob):
         self.data.append(grob)
 
     def append(self, grob):

@@ -5,19 +5,20 @@ from pypaint.types.color  import Color
 from pypaint.shape        import shape
 
 class Canvas(CanvasMixin):
-    def __init__(self, width=None, height=None, backend=PILCanvas, gtk_draw=False):
+    def __init__(self, width=None, height=None, backend=PILCanvas, canvas=None, gtk_draw=False):
         CanvasMixin.__init__(self, width, height)
-        self.backend = backend(width, height, gtk=gtk_draw)
+        if canvas:
+            self.backend = canvas
+        else:
+            self.backend = backend(width, height, gtk=gtk_draw)
+
         self.width  = width
         self.height = height
         self.gtk_draw = gtk_draw
-        self.instant_draw = True
+        self.instant_draw = False
 
-    def add(self, object):
-        if self.instant_draw:
-            self.backend.draw(stack=[object])
-        else:
-            self.data.append(object)
+    def reset_canvas(self, r, g, b):
+        self.backend.reset_canvas(r, g, b)
 
     def draw(self):
         self.backend.draw(stack=self.data)
@@ -31,7 +32,6 @@ class Canvas(CanvasMixin):
     @property
     def width(self):
         return self.width
-
 
     @property
     def height(self):

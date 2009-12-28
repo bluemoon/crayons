@@ -1,0 +1,236 @@
+ft2 - Python bindings for Freetype 2
+
+  **THIS IS BETA CODE** -- don't expect everything to work ;) Bug reports (and of
+  course fixes ;) are welcome. Send them to "a.deuring@satzbau-gmbh.de":mailto:a.deuring@satzbau-gmbh.de
+
+  - It has yet only been tested under Linux
+
+  - fixed size fonts can't yet be used with ft2.
+
+  Installation:
+
+    You need a recent version of the Freetype 2 library, which provides
+    the include file ft2build.h. According to the file CHANGES in the Freetype
+    sources, this file is available since Freetype version 2.0.2
+
+    The installation itself should be simple - just run::
+
+      python setup.py install
+
+
+  A short reference of the Python types and methods provided by ft2:
+
+    **Note:** I dont see the point, why I should try to copy the Freetype 2
+    documentation -- this would only introduce unnecessary errors ;) So I give
+    only a short overview of the available attributes and methods. For details,
+    please have a look into the Freetype 2 documentation.
+
+    Many integers used by the ft2 module are actually fixed point numbers. A
+    more ambitious implementation could mimic these data types with specialized 
+    Python objects, including conversion from/to floats -- but I think that the
+    advantages are not worth the effort of implementing all this stuff.
+
+    ft2.Library() 
+
+      creates a new Freetype 2 library instance.
+    
+      Library objects have no attributes and methods.
+   
+    ft2.Face(library, stream, index) 
+
+      creates a new face instance. 
+   
+      *library* must be an ft2.Library
+      object.
+   
+      *stream* must be an IO stream (e.g., a file object or a StringIO object)
+      providing the methods read, seek and tell.
+   
+      *index* is the index of the face in the font file.
+   
+      Attributes (all are read-only). The attribute names are the same as those
+      defined in struct FT_Face_Rec:
+
+        - num_faces (int)
+
+        - face_index (int)
+
+        - face_flags (int)
+
+        - style_flags (int)
+
+        - num_glyphs (int)
+
+        - family_name (string)
+
+        - style_name (string)
+
+        - num_charmaps (int)
+
+        - bbox (int,int,int,int)
+
+        - units_per_EM (int)
+
+        - ascender (int)
+
+        - descender (int)
+
+        - height (int)
+
+        - max_advance_width (int)
+
+        - max_advance_height (int)
+
+        - underline_position (int)
+
+        - underline_thickness (int)
+
+        The fields num_fixed_sizes, available_sizes of struct FT_Face_Rec are not
+        accessible from ft2.Face instances. The data of the field charmaps is 
+        available via the object constructor ft2.CharMap(face, index)
+
+      Methods
+
+        setCharSize(self, width, height, hres, vres) -- 
+          returns None; implements FT_Set_Char_Size
+
+        setPixelSizes(self, pixel_width, pixel_height) -- 
+          returns: None; implements FT_Set_Pixel_Size
+
+        setTransform(self, (xx, xy, yx, yy), (dx, dy)) --
+          returns: None; implements FT_Set_Transform
+
+        getKerning(self, left, right, mode) --
+          returns: (int,int); implements FT_Get_Kerning
+
+        getGlyphName(self, index) --
+          returns: string; implements FT_Get_Glyph_Name
+
+        getPostscriptName(self) --
+          returns: string; implements FT_Get_Postscript_Name
+
+        getCharIndex(self, i) --
+          returns: int; implements FT_Get_Char_Index)
+
+        encodingVector(self) --
+          returns: dict; uses internally FT_Get_First_Char and FT_Get_Next_Char
+
+        setCharMap(self, charmap) --
+          returns: None; implements FT_Set_Charmap
+
+        attach(self, stream) --
+          returns: None; implements FT_Attach_Stream
+          (the parameter stream must be an IO stream as used
+          in the constructor ft2.Face)
+
+        getMetrics(self) --
+          returns: (x_ppem, y_ppem, x_scale, y_scale, 
+          ascender, descender, height, max_advance)
+          
+          getMetrics returns the data of FT_Face_Rec.size->metrics
+
+      Notes:
+     
+        encodingVector -- the return value of encodingVector() is a dictionary 
+        mapping the character codes of the currently selected CharMap to 
+        glyph indices
+
+        setCharmap -- charmap must an object of type ft2.Charmap (see below), 
+        which has been created for this Face instance.
+
+        For the freetype functions FT_Load_Char, FT_Render_Glyph and 
+        FT_Select_Charmap exist no corresponding ft2.Face methods. 
+        FT_Load_Char "only" avoids the lookup of a glyph index in the 
+        encoding vector, compared with FT_Load_Glyph. Selection of a 
+        character map is possible with setCharmap. FT_Render_Glyph 
+        causes a "metamorphosis" of the affected FT_Glyph instance.
+        "Imitating" this behaviour in Python is of course possible, 
+        but would require a slightly more complicated __getattr__ method.
+        I prefer to create a bitmap object that is cleanly separated from 
+        a Glyph object, while the original glyph object is not altered.
+        
+        The glyph slot defined in FT_Face_Rec and related  functions are 
+        not accessible. Use instances of ft.Glyph instead.
+        
+    ft2.CharMap(face, index) 
+
+      creates a new charmap instance. face must of type ft2.Face; index is an
+      index into the list of the charmaps available for this face. The Python
+      expression "index in range(face.num_charmaps)" must evaluate to true,
+      otherwise the constructor raises an error.
+    
+      Attributes
+      
+        - encoding (int)
+ 
+        - platform_id (int)
+
+        - encoding_id (int)
+
+        - encoding_as_string (string)
+      
+        'encoding_as_string' returns the encoding ID as a string. Example:
+        freetype.h defines the Unicode encoding as:: 
+ 
+        FT_ENC_TAG( FT_ENCODING_UNICODE,    'u', 'n', 'i', 'c' )
+   
+        'encoding_as_string' returns 'unic' in this case.
+   
+      Methods
+
+        No methods available
+
+    ft2.Glyph(face, index, options)
+
+      creates a new Glyph object for the glyph with index index.
+  
+      Attributes
+
+        - advance (int,int)
+  
+      Methods
+
+        copy(self) --
+          returns a new Glyph instance containing a copy of the object
+
+        transform(self, (xx, xy, yx, yy), (dx, dy)) --
+          applies a coordinate transformation defined by the matrix 
+          (xx, xy, yx, yy) and the translation vector (dx, dy)
+
+        getCBox(self, mode) --
+          return the bounding box (xmin, ymin, xmax, ymax). Implement FT_Get_CBox.
+
+    ft2.Bitmap(glyph, mode, orig_x, orig_y)
+
+      creates a new Bitmap object. Note: internally, this is an FT_BitmapGlyph
+      object. The attributes listed below are both from the FT_BitmapGlyph
+      instance and from the FT_Bitmap instance belonging to the
+      FT_Bitmap_Glyph instance.
+
+      Attributes:
+      
+        - rows (int, FT_Bitmap)
+
+        - width (int, FT_Bitmap)
+
+        - num_grays (int, FT_Bitmap)
+
+        - pixel_mode (int, FT_Bitmap)
+
+        - palette_mode (int, FT_Bitmap)
+
+        - left (int, FT_Bitmap_Glyph)
+
+        - top (int, FT_Bitmap_Glyph)
+
+        - bitmap (string)
+      
+        bitmap is a string of length width * rows containing the bitmap data
+      
+    Methods: 
+
+      None
+
+Most constants defined in freetype2.h like FT_ENCODING_xxx are defined in
+the dictionary of the ft2 module.
+

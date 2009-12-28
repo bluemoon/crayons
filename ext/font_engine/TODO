@@ -1,0 +1,20 @@
+- implementation of other parts of the Freetype 2 API
+
+- replace the usage of FT_Glyph_To_Bitmap with another function that works 
+  also with non-scalable fonts
+
+- type Glyph:
+
+  o allow  access to attributes of the "sub-types" FT_OutlineGlyph and
+    FT_BitmapGlyph ? This is a design question: Currently, we have only the 
+    glyph format which is "native" for the affected font, and we convert 
+    this data into a bitmap by invoking the constructor ft2.Bitmap(). 
+    This is probably enough for an "abstract" interface.
+  o implement FT_Glyph_Get_CBox
+
+- support for Multiple Master fonts
+
+- implement the specific APIs specific to TrueType, Type 1 etc ???
+
+- create directly PIL Image objects for rendered glyphs.
+

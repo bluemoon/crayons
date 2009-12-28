@@ -102,12 +102,6 @@ class Color(object):
         self.__dict__["__g"] = g
         self.__dict__["__b"] = b
     
-    #def _update_cmyk(self, c, m, y, k):
-        #self.__dict__["__c"] = c
-        #self.__dict__["__m"] = m
-        #self.__dict__["__y"] = y
-        #self.__dict__["__k"] = k
-        
     def _update_hsb(self, h, s, b):
         self.__dict__["__h"] = h
         self.__dict__["__s"] = s
@@ -120,10 +114,6 @@ class Color(object):
         return True
     
     #added
-    def __getitem__(self, index):
-        return (self.r, self.g, self.b, self.a)[index]
-        
-
     def __iter__(self):
         for i in range(len(self.data)):
            yield self.data[i]
@@ -134,12 +124,11 @@ class Color(object):
     #end added
 
 
-    def __setattr__(self, a, v):
-        
+    '''def __setattr__(self, a, v):
         if a in ["a", "alpha"]:
             self.__dict__["__"+a[0]] = max(0, min(v, 1))
         
-        # RGB changes, update CMYK and HSB accordingly.
+        ##RGB changes, update CMYK and HSB accordingly.
         elif a in ["r", "g", "b", "red", "green", "blue"]:
             self.__dict__["__"+a[0]] = max(0, min(v, 1))
             if self._hasattrs(("__r", "__g", "__b")):
@@ -148,7 +137,6 @@ class Color(object):
                     self.__dict__["__g"], 
                     self.__dict__["__b"]
                 )
-                #self._update_cmyk(*util.rgb2cmyk(r, g, b))
                 self._update_hsb(*util.rgb2hsb(r, g, b))
         
         # HSB changes, update RGB and CMYK accordingly.
@@ -163,52 +151,21 @@ class Color(object):
                     self.__dict__["__brightness"]
                 )
                 self._update_rgb(r, g, b)
-                #self._update_cmyk(*util.rgb2cmyk(r, g, b))
-        
-        # CMYK changes, update RGB and HSB accordingly.
-        #elif a in ["c", "m", "y", "k", "cyan", "magenta", "yellow", "black"]:
-            #if a != "black": a = a[0]
-            #self.__dict__["__"+a] = max(0, min(v, 1))
-            #if self._hasattrs(("__c", "__m", "__y", "__k")):
-                #r, g, b = util.cmyk2rgb(
-                    #self.__dict__["__c"], 
-                    #self.__dict__["__m"], 
-                    #self.__dict__["__y"], 
-                    #self.__dict__["__k"]
-                #)
-                #self._update_rgb(r, g, b)
-                #self._update_hsb(*util.rgb2hsb(r, g, b))
-                
         else:
             self.__dict__[a] = v
 
     def __getattr__(self, a):
-        
-        """ Available properties:
-        r, g, b, a or red, green, blue, alpha
-        c, m, y, k or cyan, magenta, yellow, black,
-        h, s or hue, saturation, brightness
-        
-        """
-        
         if self.__dict__.has_key(a):
-            return a
-        #elif a == "black":
-            #return self.__dict__["__k"]        
+            return a  
         elif a == "brightness":
             return self.__dict__["__brightness"]
-        #CMYK
-        #elif a in ["a", "alpha",
-                   #"r", "g", "b", "red", "green", "blue",
-                   #"h", "s", "hue", "saturation",
-                   #"c", "m", "y", "k", "cyan", "magenta", "yellow"]:
-        #NO-CMYK 
         elif a in ["a", "alpha",
                    "r", "g", "b", "red", "green", "blue",
                    "h", "s", "hue", "saturation"]:
             return self.__dict__["__"+a[0]]
         
         raise AttributeError, "'"+str(self.__class__)+"' object has no attribute '"+a+"'"
+        '''
 
     def darken(self, step=0.1):
         return Color(self.h, self.s, self.brightness-step, self.a, mode="hsb", name="")

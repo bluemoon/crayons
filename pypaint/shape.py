@@ -9,7 +9,11 @@ class shape(TransformMixin, ColorMixin):
         
     def rectangle(self, x, y, width, height, roundness=0.0, **kwargs):
         r = path(**kwargs)
-        r.rect(x, y, width, height)
+        r.moveto(x, y)
+        r.rellineto(width, 0)
+        r.rellineto(0, height)
+        r.rellineto(-width, 0)
+        r.rellineto(0, -height)
         return r
 
     def arrow(self, x, y, width=100, type=NORMAL, **kwargs):

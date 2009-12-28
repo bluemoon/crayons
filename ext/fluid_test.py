@@ -5,7 +5,6 @@ from pypaint.shape           import shape
 from pypaint.canvas          import Canvas
 from pypaint.path            import path
 from pypaint.pygtk           import paint_gtk
-from pypaint.types.color     import Color
 #from pypaint.pyglet          import *
 import random
 
@@ -14,8 +13,9 @@ b = [6.0, 2.0, 3.0, 3.0]
 c = [2.2, 6.4, 2.0, 3.0]
 d = [10.4, 2.0, 2.0, 5.0, 0.1, 1.0]
 
-grid_size = 32
-a = cFluid.fluid(grid_size, visc=0.00001)#, visc=0.1)
+grid_size = 48
+a = cFluid.fluid(grid_size, 1)#, visc=0.1)
+
 
 def vector_print(list):
     x = list[0]
@@ -35,9 +35,8 @@ def vector_print(list):
 #pygame = PyGameCanvas(500, 500)
 
 def draw():
-    ctx = Canvas(width=500, height=500, gtk_draw=True)
-
     global m
+    ctx = Canvas(width=500, height=500, gtk_draw=True)
     wn = 500.0 / (grid_size - 1)
     hn = 500.0 / (grid_size - 1)
     
@@ -52,42 +51,37 @@ def draw():
 
     s = shape()
     p = path()
-
     for i in xrange(length):
         for j in xrange(length):
-
             idx = (j * length) + i
             start_x = (i * wn)
             start_y = (j * hn)
-
-            color = colors[idx]
-
             #r = s.rectangle(start_x, start_y, wn, hn)
-            #r._strokecolor = Color(*color)
-            #r._strokewidth = 0.25
+            #color = colors[idx]
+            #r.stroke_color = tuple(color)
+            #r.stroke_width = 0.25
             #ctx.add(r)
 
             p.moveto(start_x, start_y)
             p.rellineto(U[idx]*1000.0, V[idx]*1000.0)
-
-    p._strokecolor = Color(0.0, 0.0, 0.0)
-    p._stroke_width = 0.25
+            
+    p.stroke_color = (0.0, 0.0, 0.0)
+    p.stroke_width = 0.25
     ctx.add(p)
     
     if (m%100) == 0:
-        a.add_force(random.randint(0, grid_size), 
-                    random.randint(0, grid_size),
-                    random.randint(0, grid_size),
-                    random.randint(0, grid_size),
-                    0,
-                    0.00001
+        a.add_force(random.randint(0, grid_size)/1000.0, 
+                    random.randint(0, grid_size)/1000.0,
+                    random.randint(0, grid_size)/1000.0,
+                    random.randint(0, grid_size)/1000.0,
+
                     #random.random(),
                     #random.random()
                     )
 
     m += 1
-    ctx.draw()
-    return ctx.gtk()
+    #ctx.draw()
+    return ctx
 
 def main():
     global m
@@ -113,6 +107,6 @@ if __name__ == "__main__":
         #p.print_callers()
         
         #print 'OUTGOING CALLEES:'
-        #p.print_callees('\(buildPenBrush')
+        #p.print_callees()
     else:
         main()

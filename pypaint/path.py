@@ -3,6 +3,7 @@ from pypaint.mixins      import *
 from aggdraw  import *
 
 class path(Grob, TransformMixin, ColorMixin):
+    type = 'path'
     def __init__(self, path=None, **kwargs):
         TransformMixin.__init__(self)
         ColorMixin.__init__(self, **kwargs)
@@ -11,6 +12,7 @@ class path(Grob, TransformMixin, ColorMixin):
             self.data = []
 
         self.path = Path()
+        
 
     def __setitem__(self, index, value):
         self.data[index] = value
@@ -135,9 +137,9 @@ class path(Grob, TransformMixin, ColorMixin):
         #self.data.append(PathElement(CURVE4TO, c1x, c1y, c2x, c2y, x, y))
 
     def relmoveto(self, x, y):
-        #self.path.rlineto(x, y)
+        self.path.rlineto(x, y)
         #self.data.append(PathElement(RMOVETO, x, y))
-        pass
+
 
     def rellineto(self, x, y):
         self.path.rlineto(x, y)
@@ -145,7 +147,7 @@ class path(Grob, TransformMixin, ColorMixin):
 
     def relcurveto(self, c1x, c1y, c2x, c2y, x, y):
         self.path.rcurveto(c1x, c1y, c2x, c2y, x, y)
-       # self.data.append(PathElement(RCURVETO, c1x, c1y, c2x, c2y, x, y))
+        #self.data.append(PathElement(RCURVETO, c1x, c1y, c2x, c2y, x, y))
 
     def arc(self, x, y, radius, angle1, angle2):
         self.path.curveto(c1x, c1y, c2x, c2y, x, y)

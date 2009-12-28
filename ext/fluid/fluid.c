@@ -29,6 +29,7 @@ typedef struct {
   float    dt;
   int      dim;
   double   scale;
+  double   visc;
 
   rfftwnd_plan plan_rc;
   rfftwnd_plan plan_cr;
@@ -39,7 +40,7 @@ static rfftwnd_plan plan_rc;
 static rfftwnd_plan plan_cr;
 
 /// Definitions
-static PyObject *cFluid_new(PyObject *self_, PyObject *args);
+static PyObject *cFluid_new(PyObject *self_, PyObject *args, PyObject *kwargs);
 static void fluid_dealloc(fluid_object* self);
 static PyObject *cFluid_add_force(fluid_object *self, PyObject *args);
 static PyObject *cFluid_vectors(fluid_object *self, PyObject *args);
@@ -55,7 +56,7 @@ static PyMethodDef fluid_methods[] = {
 };
 
 static PyMethodDef fluidMethods[] = {
-    { "fluid", (PyCFunction) cFluid_new, METH_VARARGS|METH_KEYWORDS},
+    { "fluid", (PyCFunction) cFluid_new,  METH_VARARGS|METH_KEYWORDS},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -413,7 +414,7 @@ static PyObject *cFluid_add_force(fluid_object *self, PyObject *args){
     double cdy = accel_end - ((k/100.0) * (accel_end - accel_start));
     // don't draw the last position twice
     if (cx == x2 && cy == y2 ) { break; }
-    drag(self, cx, 1-cy, cdx, (-1*cdy), r, g, b);
+    drag(self, cx, cy, cdx, cdy, r, g, b);
     k +=  1/(c*2);
   }
 
@@ -433,8 +434,7 @@ void vector_print(fluid_object *self){
 }
 
 static PyObject *cFluid_solver(fluid_object *self, PyObject *args){
-  float dt = 0.1f;
-  float visc = 0.001f;
+  float dt = 0.001f;
   int i;
 
   for (i = 0; i < (self->dim * self->dim); i++) {
@@ -447,7 +447,7 @@ static PyObject *cFluid_solver(fluid_object *self, PyObject *args){
     self->b0[i] = 0.995 * self->b[i]; 
   }
   diffuse_matter(self);
-  new_solve(self, visc);
+  new_solve(self, self->visc);
   zero_boundary(self, args);
   //vector_print(self);
 
@@ -456,19 +456,24 @@ static PyObject *cFluid_solver(fluid_object *self, PyObject *args){
   return Py_None;
 }
 
-static PyObject *cFluid_new(PyObject *self_, PyObject *args){
+static PyObject *cFluid_new(PyObject *self_, PyObject *args, PyObject *kwargs){
   int dim, i;
   int height, width = 0;
-
-  if (!PyArg_ParseTuple(args, "i|ii", &dim, &width, &height))
-    return NULL;
+  double visc;
+  visc = 0.001;
 
   fluid_object *self;
   self = (fluid_object *)PyObject_NEW(fluid_object, &fluidType);
-  init_FFT(self, dim);
+  
 
+  if (!PyArg_ParseTuple(args,"i|d", &dim, &visc))
+    return NULL;
+
+  self->dim = dim;
+  self->visc = visc;
   // Make the delta time 0.0 so it doesnt make a NaN
-  self->dt = 0.0f;
+  self->dt   = 0.0f;
+  init_FFT(self, self->dim);
 
   self->u     = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
   self->v     = (double *)malloc((dim * 2 * (dim/2+1)) * sizeof(double));
@@ -491,7 +496,6 @@ static PyObject *cFluid_new(PyObject *self_, PyObject *args){
       self->b[i] = self->b0[i] = 0.0;
   }
 
-  self->dim = dim;
   if (height > 0 && width > 0){
     double scale = (height+width)/2;
     self->scale = scale;

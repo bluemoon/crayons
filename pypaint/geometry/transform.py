@@ -99,7 +99,7 @@ class Transform:
                 >>>
 		
                 """
-		self.__affine = xx, xy, yx, yy, dx, dy
+		self.affine = xx, xy, yx, yy, dx, dy
 
 	def transformPoint(self, (x, y)):
 		"""Transform a point.
@@ -110,7 +110,7 @@ class Transform:
 			>>> t.transformPoint((100, 100))
 			(250.0, 550.0)
 		"""
-		xx, xy, yx, yy, dx, dy = self.__affine
+		xx, xy, yx, yy, dx, dy = self.affine
 		return (xx*x + yx*y + dx, xy*x + yy*y + dy)
 
 	def transformPoints(self, points):
@@ -122,7 +122,7 @@ class Transform:
 			[(0, 0), (0, 300), (200, 300), (200, 0)]
 			>>>
 		"""
-		xx, xy, yx, yy, dx, dy = self.__affine
+		xx, xy, yx, yy, dx, dy = self.affine
 		return [(xx*x + yx*y + dx, xy*x + yy*y + dy) for x, y in points]
 
 	def translate(self, x=0, y=0):
@@ -195,7 +195,7 @@ class Transform:
 			>>>
 		"""
 		xx1, xy1, yx1, yy1, dx1, dy1 = other
-		xx2, xy2, yx2, yy2, dx2, dy2 = self.__affine
+		xx2, xy2, yx2, yy2, dx2, dy2 = self.affine
 		return self.__class__(
 				xx1*xx2 + xy1*yx2, 
 				xx1*xy2 + xy1*yy2,
@@ -217,7 +217,7 @@ class Transform:
 			<Transform [8 6 6 3 21 15]>
 			>>>
 		"""
-		xx1, xy1, yx1, yy1, dx1, dy1 = self.__affine
+		xx1, xy1, yx1, yy1, dx1, dy1 = self.affine
 		xx2, xy2, yx2, yy2, dx2, dy2 = other
 		return self.__class__(
 				xx1*xx2 + xy1*yx2,
@@ -241,7 +241,7 @@ class Transform:
 		"""
 		if self.__affine == (1, 0, 0, 1, 0, 0):
 			return self
-		xx, xy, yx, yy, dx, dy = self.__affine
+		xx, xy, yx, yy, dx, dy = self.affine
 		det = float(xx*yy - yx*xy)
 		xx, xy, yx, yy = yy/det, -xy/det, -yx/det, xx/det
 		dx, dy = -xx*dx - yx*dy, -xy*dx - yy*dy
@@ -254,14 +254,14 @@ class Transform:
 			'[2 0 0 3 8 15]'
 			>>>
 		"""
-		return "[%s %s %s %s %s %s]" % self.__affine
+		return "[%s %s %s %s %s %s]" % self.affine
         
         def __iadd__(self, other):
             return self.transform(other)
 
         def __imul__(self, other):
             xx1, xy1, yx1, yy1, dx1, dy1 = other
-            xx2, xy2, yx2, yy2, dx2, dy2 = self.__affine
+            xx2, xy2, yx2, yy2, dx2, dy2 = self.affine
             return self.__class__(
                 xx1*xx2 + xy1*yx2, 
                 xx1*xy2 + xy1*yy2,
@@ -280,11 +280,11 @@ class Transform:
 		return 6
 
 	def __getitem__(self, index):
-                return self.__affine[index]
+                return self.affine[index]
 
 
         def __setitem__(self, index, item):
-                self.__affine[index] = item
+                self.affine[index] = item
 
 	def __getslice__(self, i, j):
 		"""Transform instances also behave like sequences and even support
@@ -296,32 +296,17 @@ class Transform:
 			(100, 200)
 			>>>
 		"""
-		return self.__affine[i:j]
-
+		return self.affine[i:j]
+        """
 	def __cmp__(self, other):
-		"""Transform instances are comparable:
-			>>> t1 = Identity.scale(2, 3).translate(4, 6)
-			>>> t2 = Identity.translate(8, 18).scale(2, 3)
-			>>> t1 == t2
-			1
-			>>>
+                if other == None:
+                    return False
 
-		But beware of floating point rounding errors:
-			>>> t1 = Identity.scale(0.2, 0.3).translate(0.4, 0.6)
-			>>> t2 = Identity.translate(0.08, 0.18).scale(0.2, 0.3)
-			>>> t1
-			<Transform [0.2 0.0 0.0 0.3 0.08 0.18]>
-			>>> t2
-			<Transform [0.2 0.0 0.0 0.3 0.08 0.18]>
-			>>> t1 == t2
-			0
-			>>>
-		"""
-		xx1, xy1, yx1, yy1, dx1, dy1 = self.__affine
+		xx1, xy1, yx1, yy1, dx1, dy1 = self.affine
 		xx2, xy2, yx2, yy2, dx2, dy2 = other
 		return cmp((xx1, xy1, yx1, yy1, dx1, dy1),
 				(xx2, xy2, yx2, yy2, dx2, dy2))
-
+                                """
 	def __hash__(self):
 		"""Transform instances are hashable, meaning you can use them as
 		keys in dictionaries:
@@ -347,11 +332,11 @@ class Transform:
                 KeyError: <Transform [0.2 0.0 0.0 0.3 0.08 0.18]>
                 >>>
 		"""
-		return hash(self.__affine)
+		return hash(self.affine)
 
 	def __repr__(self):
 		return "<%s [%s %s %s %s %s %s]>" % ((self.__class__.__name__,)
-				 + tuple(map(str, self.__affine)))
+				 + tuple(map(str, self.affine)))
 
 
 Identity = Transform()

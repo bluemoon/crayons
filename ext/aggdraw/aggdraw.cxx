@@ -3,38 +3,8 @@
  * $Id: /work/modules/aggdraw/aggdraw.cxx 1184 2006-02-12T14:43:44.069233Z Fredrik  $
  *
  * WCK-style drawing using the AGG library.
- *
- * history:
- * 2004-09-14 fl   created, based on experimental code
- * 2004-09-15 fl   added pen/brush objects (from ironpil), multiple modes
- * 2004-09-16 fl   added text, arc/ellipse support
- * 2005-03-25 fl   added BGRA support
- * 2005-05-02 fl   added (experimental) symbol support
- * 2005-05-12 fl   added image constructor and flush method
- * 2005-05-18 fl   fixed possible image constructor crash
- * 2005-05-18 fl   make sure to keep a reference to the image
- * 2005-05-19 fl   improved symbol path support
- * 2005-06-12 fl   added support for S and T path operators
- * 2005-06-15 fl   added support for outline fonts
- * 2005-06-15 fl   support settransform for basic primitives and text
- * 2005-06-19 fl   use ImageColor.getrgb to resolve colors
- * 2005-06-30 fl   added Path object (stub)
- * 2005-07-04 fl   added Path methods (moveto, lineto, etc)
- * 2005-07-05 fl   added Path support to the line and polygon primitives
- * 2005-08-10 fl   fixed Draw(im) buffer memory leak (ouch!)
- * 2005-08-20 fl   fixed background color setting for RGB modes
- * 2005-08-30 fl   expand polygons by 0.5 pixels by default (experimental)
- * 2005-08-30 fl   fixed proper clipping in rasterizer
- * 2005-09-23 fl   added antialias setting
- * 2005-09-24 fl   don't recreate draw adaptor for each operation
- * 2005-09-26 fl   added coords method to Path type
- * 2005-10-10 fl   fixed broken add_path calls in symbol renderer (1.1)
- * 2005-10-19 fl   added native Windows support (via the Dib factory)
- * 2005-10-20 fl   added clear method
- * 2005-10-23 fl   support either hdc or hwnd in expose
- * 2006-02-12 fl   fixed crashes in type(obj) and path constructor
- *
  * Copyright (c) 2003-2006 by Secret Labs AB
+ * Copyright (c) 2009 Alex Toney
  */
 
 #define VERSION "1.2a3"
@@ -65,18 +35,37 @@
 #include "agg_conv_stroke.h"
 #include "agg_conv_transform.h"
 #include "agg_ellipse.h"
+
 #if defined(HAVE_FREETYPE2)
 #include "agg_font_freetype.h"
 #endif
+
 #include "agg_path_storage.h"
-#include "agg_pixfmt_gray8.h"
-#include "agg_pixfmt_rgb24.h"
-#include "agg_pixfmt_rgba32.h"
+#include "agg_pixfmt_gray.h"
+#include "agg_pixfmt_rgb.h"
+#include "agg_pixfmt_rgba.h"
 #include "agg_rasterizer_scanline_aa.h"
 #include "agg_renderer_scanline.h"
 #include "agg_rendering_buffer.h"
 #include "agg_scanline_p.h"
 #include "platform/agg_platform_support.h" // agg::pix_format_*
+#include "agg_basics.h"
+#include "agg_rendering_buffer.h"
+#include "agg_rasterizer_scanline_aa.h"
+#include "agg_rasterizer_outline.h"
+#include "agg_scanline_p.h"
+#include "agg_scanline_bin.h"
+#include "agg_renderer_primitives.h"
+#include "agg_conv_stroke.h"
+#include "agg_conv_dash.h"
+#include "agg_vcgen_markers_term.h"
+#include "agg_conv_marker.h"
+#include "agg_conv_shorten_path.h"
+#include "agg_conv_marker_adaptor.h"
+#include "agg_conv_concat.h"
+#include "agg_arrowhead.h"
+
+#define Pen_Check(op) ((op) != NULL && (op)->ob_type == &PenType)
 
 /* -------------------------------------------------------------------- */
 /* AGG Drawing Surface */
@@ -92,8 +81,8 @@ static font_manager_type font_manager(font_engine);
 /* forward declaration */
 class draw_adaptor_base;
 
-template<class PixFmt> class draw_adaptor;
-
+template<class PixFmt> class  draw_adaptor;
+template<class Source> struct dash_stroke;
 typedef struct {
     PyObject_HEAD
     draw_adaptor_base *draw;
@@ -105,24 +94,9 @@ typedef struct {
     int buffer_size;
     PyObject* image;
     PyObject* background;
-#if defined(WIN32)
-    HDC dc;
-    HBITMAP bitmap;
-    HGDIOBJ old_bitmap;
-    BITMAPINFO info;
-#endif
 } DrawObject;
 
-typedef struct {
-  PyObject_HEAD
-  
-} CanvasObj;
-
-
-
-/* glue functions (see the init function for details) */
 static PyObject* aggdraw_getcolor_obj;
-
 static void draw_dealloc(DrawObject* self);
 static PyObject* draw_getattr(DrawObject* self, char* name);
 
@@ -139,7 +113,10 @@ static PyTypeObject DrawType = {
 typedef struct {
     PyObject_HEAD
     agg::rgba8 color;
-    float width;
+  float width;
+  int  dash;
+  int arrow;
+
 } PenObject;
 
 static void pen_dealloc(PenObject* self);
@@ -154,11 +131,12 @@ static PyTypeObject PenType = {
     0, /* tp_setattr */
 };
 
-#define Pen_Check(op) ((op) != NULL && (op)->ob_type == &PenType)
+
 
 typedef struct {
     PyObject_HEAD
     agg::rgba8 color;
+
 } BrushObject;
 
 static void brush_dealloc(BrushObject* self);
@@ -251,13 +229,60 @@ text_getchar(PyObject* string, int index, unsigned long* char_out)
 }
 #endif
 
+
+template<class Source> struct dash_stroke{
+  typedef agg::conv_dash<Source, agg::vcgen_markers_term> dash_type;
+  dash_type d;
+  dash_stroke(Source& src, double dash_len, double gap_len, double w): d(src){
+    d.add_dash(dash_len, gap_len);
+  }
+  void rewind(unsigned path_id) { d.rewind(path_id); }
+  unsigned vertex(double* x, double* y) { return d.vertex(x, y); }
+};
+template<class Source> struct dash_stroke_arrow{
+    typedef agg::conv_dash<Source, agg::vcgen_markers_term>                   dash_type;
+    typedef agg::conv_marker<typename dash_type::marker_type, agg::arrowhead> marker_type;
+    typedef agg::conv_concat<dash_type, marker_type>                          concat_type;
+
+    dash_type      d;
+    agg::arrowhead ah;
+    marker_type    m;
+    concat_type    c;
+
+    dash_stroke_arrow(Source& src, double dash_len, double gap_len, double w) : d(src), ah(), m(d.markers(), ah), c(d, m){
+        d.add_dash(dash_len, gap_len);
+        ah.head(0, 3, 3, 0);
+        //d.shorten(10.0);
+    }
+
+    void rewind(unsigned path_id) { c.rewind(path_id); }
+    unsigned vertex(double* x, double* y) { return c.vertex(x, y); }
+};
+template<class Source> struct stroke_arrow{
+    typedef agg::conv_marker_adaptor<Source, agg::vcgen_markers_term>           stroke_type;
+    typedef agg::conv_marker<typename stroke_type::marker_type, agg::arrowhead> marker_type;
+    typedef agg::conv_concat<stroke_type, marker_type>                          concat_type;
+
+    stroke_type    s;
+    agg::arrowhead ah;
+    marker_type    m;
+    concat_type    c;
+
+    stroke_arrow(Source& src, double w) : s(src),ah(),m(s.markers(), ah),c(s, m){
+        ah.head(0, 2, 2, 0);
+    }
+
+    void rewind(unsigned path_id) { c.rewind(path_id); }
+    unsigned vertex(double* x, double* y) { return c.vertex(x, y); }
+};
+
 /* This template class is used to automagically instantiate drawing
    code for all pixel formats used by the library. */
 
 class draw_adaptor_base 
 {
 public:
-    char* mode;
+    const char* mode;
     virtual ~draw_adaptor_base() {};
     virtual void setantialias(bool flag) = 0;
     virtual void draw(agg::path_storage &path, PyObject* obj1,
@@ -266,39 +291,82 @@ public:
 };
 
 template<class PixFmt> class draw_adaptor : public draw_adaptor_base {
-
-    DrawObject* self;
-
-    typedef agg::renderer_base<PixFmt> renderer_base;
-    typedef agg::renderer_scanline_aa_solid<renderer_base> renderer_aa;
-
-    agg::rasterizer_scanline_aa<> rasterizer;
-    agg::scanline_p8 scanline;
-
+  DrawObject* self;
+  typedef agg::renderer_base<PixFmt> renderer_base;
+  typedef agg::renderer_scanline_aa_solid<renderer_base> renderer_aa;
+  typedef agg::renderer_scanline_bin_solid<renderer_base> renderer_bin;
+  agg::rasterizer_scanline_aa<> rasterizer;
+  agg::scanline_p8 scanline;
+  bool antialias;
 public:
-    draw_adaptor(DrawObject* self_, char* mode_) 
-    {
-        self = self_;
-        mode = mode_;
+  draw_adaptor(DrawObject* self_, const char* mode_){
+    self = self_;
+    mode = mode_;
+    setantialias(true);
+    rasterizer.clip_box(0,0, self->xsize, self->ysize);
+  }
 
-        setantialias(true);
+  void setantialias(bool flag){
+    antialias = flag;
+  };
 
-        rasterizer.clip_box(0,0, self->xsize, self->ysize);
-    }
+  void draw_pen_dash(PenObject &pen, agg::path_storage &path){
+    PixFmt pf(*self->buffer);
+    renderer_base rb(pf);
+    renderer_aa   ren(rb);
+    agg::conv_stroke<agg::path_storage> stroke(path);
+    dash_stroke<agg::conv_stroke<agg::path_storage> > dash(stroke, 10, 1, pen.width);
+    //dash_stroke<agg::path_storage> dash(*path, 6.0, 3.0, pen->width);
+    rasterizer.reset();
+    rasterizer.add_path(dash);
+    ren.color(pen.color);
+    agg::render_scanlines(rasterizer, scanline, ren);
+  }
+  void draw_pen_dash_arrow(PenObject &pen, agg::path_storage &path){
+    PixFmt pf(*self->buffer);
+    renderer_base rb(pf);
+    renderer_aa   ren(rb);
+    agg::conv_stroke<agg::path_storage> stroke(path);
+    dash_stroke_arrow<agg::conv_stroke<agg::path_storage> > dash(stroke, 10, 1, pen.width);
+    //dash_stroke<agg::path_storage> dash(*path, 6.0, 3.0, pen->width);
+    rasterizer.reset();
+    rasterizer.add_path(dash);
+    ren.color(pen.color);
+    agg::render_scanlines(rasterizer, scanline, ren);
+  }
+  void draw_pen_solid_arrow(PenObject &pen, agg::path_storage &path){
+    PixFmt pf(*self->buffer);
+    renderer_base rb(pf);
+    renderer_aa   ren(rb);
+    agg::conv_stroke<agg::path_storage> stroke(path);
+    stroke_arrow<agg::conv_stroke<agg::path_storage> > stroke_(stroke, pen.width);
+    //dash_stroke<agg::path_storage> dash(*path, 6.0, 3.0, pen->width);
+    rasterizer.reset();
+    rasterizer.add_path(stroke_);
+    ren.color(pen.color);
+    agg::render_scanlines(rasterizer, scanline, ren);
+  }
+  void draw_pen_solid(PenObject &pen, agg::path_storage &path){
+    PixFmt pf(*self->buffer);
+    renderer_base rb(pf);
+    renderer_aa   ren(rb);
+    agg::conv_stroke<agg::path_storage> stroke(path);
+    //dash_stroke<agg::path_storage> dash(*path, 6.0, 3.0, pen->width);
+    stroke.width(pen.width);
+    rasterizer.reset();
+    rasterizer.add_path(stroke);
+    ren.color(pen.color);
+    agg::render_scanlines(rasterizer, scanline, ren);
+  }
 
-    void setantialias(bool flag)
-    {
-        if (flag)
-            rasterizer.gamma(agg::gamma_linear());
-        else
-            rasterizer.gamma(agg::gamma_threshold(0.5));
-    };
-
-    void draw(agg::path_storage &path, PyObject* obj1, PyObject* obj2=NULL)
-    {
+  void draw(agg::path_storage &path, PyObject* obj1, PyObject* obj2=NULL){
         PixFmt pf(*self->buffer);
         renderer_base rb(pf);
-        renderer_aa renderer(rb);
+        renderer_aa  ren(rb);
+
+        if (antialias){
+          renderer_bin ren(rb);
+        }
 
         agg::path_storage* p;
 
@@ -322,44 +390,46 @@ public:
             p = new agg::path_storage();
             agg::conv_transform<agg::path_storage, agg::trans_affine>
                 tp(path, *self->transform);
-            p->add_path(tp, 0, false);
+
+            p->concat_path(tp);
+
         } else
             p = &path;
 
         if (brush) {
-            /* interior */
             agg::conv_contour<agg::path_storage> contour(*p);
             contour.auto_detect_orientation(true);
+
             if (pen)
                 contour.width(pen->width / 2.0);
             else
                 contour.width(0.5);
+
             rasterizer.reset();
             rasterizer.add_path(contour);
-            renderer.color(brush->color);
-            agg::render_scanlines(rasterizer, scanline, renderer);
+            ren.color(brush->color);
+            agg::render_scanlines(rasterizer, scanline, ren);
         }
 
         if (pen) {
-            /* outline */
-            /* FIXME: add path for dashed lines */
-            agg::conv_stroke<agg::path_storage> stroke(*p);
-            stroke.width(pen->width);
-            rasterizer.reset();
-            rasterizer.add_path(stroke);
-            renderer.color(pen->color);
-            agg::render_scanlines(rasterizer, scanline, renderer);
-        }
-        if (self->transform)
+          /// stroke
+          if(pen->dash){
+            draw_pen_dash_arrow(*pen, *p);
+          } else{
+            draw_pen_solid_arrow(*pen, *p);
+          }
+          if (self->transform)
             delete p;
     }
+  }
 
 #if defined(HAVE_FREETYPE2)
     void drawtext(float xy[2], PyObject* text, FontObject* font)
     {
         PixFmt pf(*self->buffer);
         renderer_base rb(pf);
-        renderer_aa renderer(rb);
+        rb.clear(agg::rgba(1.0, 1.0, 1.0));
+        renderer_scanline ren(renderer_base);
 
         typedef agg::conv_curve<font_manager_type::path_adaptor_type> curve_t;
         curve_t curves(font_manager.path_adaptor());
@@ -837,9 +907,7 @@ getcolor(PyObject* color, int opacity)
 
 /* -------------------------------------------------------------------- */
 
-static PyObject*
-draw_arc(DrawObject* self, PyObject* args)
-{
+static PyObject* draw_arc(DrawObject* self, PyObject* args){
     float x0, y0, x1, y1;
     float start, end;
     PyObject* pen = NULL;
@@ -853,9 +921,9 @@ draw_arc(DrawObject* self, PyObject* args)
         -start * (float) (M_PI / 180.0), -end * (float) (M_PI / 180.0),
         false
         );
-    arc.approximation_scale(1);
-    path.add_path(arc);
 
+    arc.approximation_scale(1);
+    path.concat_path(arc);
     self->draw->draw(path, pen);
 
     Py_INCREF(Py_None);
@@ -880,7 +948,7 @@ draw_chord(DrawObject* self, PyObject* args)
         false
         );
     arc.approximation_scale(1);
-    path.add_path(arc);
+    path.concat_path(arc);
     path.close_polygon();
 
     self->draw->draw(path, pen, brush);
@@ -902,7 +970,7 @@ draw_ellipse(DrawObject* self, PyObject* args)
     agg::path_storage path;
     agg::ellipse ellipse((x1+x0)/2, (y1+y0)/2, (x1-x0)/2, (y1-y0)/2, 8);
     ellipse.approximation_scale(1);
-    path.add_path(ellipse);
+    path.concat_path(ellipse);
 
     self->draw->draw(path, pen, brush);
 
@@ -937,9 +1005,7 @@ draw_line(DrawObject* self, PyObject* args)
     return Py_None;
 }
 
-static PyObject*
-draw_pieslice(DrawObject* self, PyObject* args)
-{
+static PyObject* draw_pieslice(DrawObject* self, PyObject* args){
     float x0, y0, x1, y1;
     float start, end;
     PyObject* pen = NULL;
@@ -958,7 +1024,7 @@ draw_pieslice(DrawObject* self, PyObject* args)
         false
         );
     arc.approximation_scale(1);
-    path.add_path(arc);
+    path.concat_path(arc);
     path.line_to(x, y);
     path.close_polygon();
 
@@ -968,9 +1034,7 @@ draw_pieslice(DrawObject* self, PyObject* args)
     return Py_None;
 }
 
-static PyObject*
-draw_polygon(DrawObject* self, PyObject* args)
-{
+static PyObject* draw_polygon(DrawObject* self, PyObject* args){
     PyObject* xyIn;
     PyObject* brush = NULL;
     PyObject* pen = NULL;
@@ -982,14 +1046,18 @@ draw_polygon(DrawObject* self, PyObject* args)
     } else {
         int count;
         PointF *xy = getpoints(xyIn, &count);
+
         if (!xy)
             return NULL;
+
         agg::path_storage path;
         path.move_to(xy[0].X, xy[0].Y);
         for (int i = 1; i < count; i++)
             path.line_to(xy[i].X, xy[i].Y);
+
         path.close_polygon();
         delete xy;
+
         self->draw->draw(path, pen, brush);
     }
 
@@ -997,9 +1065,7 @@ draw_polygon(DrawObject* self, PyObject* args)
     return Py_None;
 }
 
-static PyObject*
-draw_rectangle(DrawObject* self, PyObject* args)
-{
+static PyObject* draw_rectangle(DrawObject* self, PyObject* args){
     float x0, y0, x1, y1;
     PyObject* brush = NULL;
     PyObject* pen = NULL;
@@ -1045,9 +1111,7 @@ static PyObject* draw_path(DrawObject* self, PyObject* args){
   
 };
 
-static PyObject*
-draw_symbol(DrawObject* self, PyObject* args)
-{
+static PyObject* draw_symbol(DrawObject* self, PyObject* args){
     PyObject* xyIn;
     PathObject* symbol;
     PyObject* brush = NULL;
@@ -1065,8 +1129,9 @@ draw_symbol(DrawObject* self, PyObject* args)
         agg::trans_affine_translation transform(xy[i].X,xy[i].Y);
         agg::conv_transform<agg::path_storage, agg::trans_affine>
             tp(*symbol->path, transform);
+
         agg::path_storage p;
-        p.add_path(tp, 0, false);
+        p.concat_path(tp);
         self->draw->draw(p, pen, brush);
     }
 
@@ -1186,9 +1251,7 @@ draw_tostring(DrawObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, ":tostring"))
         return NULL;
 
-    return PyString_FromStringAndSize(
-        (char*) self->buffer_data, self->buffer_size
-        );
+    return PyString_FromStringAndSize((char*) self->buffer_data, self->buffer_size);
 }
 static PyObject* draw_tobuffer(DrawObject* self, PyObject* args){
   if (!PyArg_ParseTuple(args, ":tobuffer"))
@@ -1285,7 +1348,6 @@ draw_flush(DrawObject* self, PyObject* args)
 }
 
 static PyMethodDef draw_methods[] = {
-
     {"line", (PyCFunction) draw_line, METH_VARARGS},
     {"polygon", (PyCFunction) draw_polygon, METH_VARARGS},
     {"rectangle", (PyCFunction) draw_rectangle, METH_VARARGS},
@@ -1359,17 +1421,16 @@ draw_dealloc(DrawObject* self)
 
 /* -------------------------------------------------------------------- */
 
-static PyObject*
-pen_new(PyObject* self_, PyObject* args, PyObject* kw)
-{
+static PyObject* pen_new(PyObject* self_, PyObject* args, PyObject* kw){
     PenObject* self;
 
     PyObject* color;
     float width = 1.0;
     int opacity = 255;
-    static char* kwlist[] = { "color", "width", "opacity", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "O|fi:Pen", kwlist,
-                                     &color, &width, &opacity))
+    int arrow = 0;
+    int dash  = 0;
+    static char* kwlist[] = { "color", "width", "opacity", "arrow", "dash", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O|fiii:Pen", kwlist, &color, &width, &opacity, &arrow, &dash))
         return NULL;
 
     self = PyObject_NEW(PenObject, &PenType);
@@ -1379,14 +1440,13 @@ pen_new(PyObject* self_, PyObject* args, PyObject* kw)
 
     self->color = getcolor(color, opacity);
     self->width = width;
-
+    self->dash  = dash;
+    self->arrow = arrow;
     return (PyObject*) self;
 }
 
-static void
-pen_dealloc(PenObject* self)
-{
-    PyObject_DEL(self);
+static void pen_dealloc(PenObject* self){
+  PyObject_DEL(self);
 }
 
 /* -------------------------------------------------------------------- */
@@ -1560,201 +1620,15 @@ path_new(PyObject* self_, PyObject* args)
     return (PyObject*) self;
 }
 
-static PyObject*
-symbol_new(PyObject* self_, PyObject* args)
-{
-    char* path;
-    float scale = 1.0;
-    if (!PyArg_ParseTuple(args, "s|f:Symbol", &path, &scale))
-        return NULL;
-
-    PathObject* self = PyObject_NEW(PathObject, &PathType);
-
-    if (self == NULL)
-        return NULL;
-
-    self->path = new agg::path_storage();
-
-    char op = 0;
-    char *p, *q, *e;
-    double x, y, x1, y1, x2, y2;
-    bool curve = 0;
-
-    p = path;
-    e = path + strlen(path);
-
-#define COMMA_WSP\
-    do { while (isspace(*p)) p++; if (*p == ',') p++; } while (0)
-
-    /* sloppy SVG-style path parser */
-    while (p < e) {
-        while (isspace(*p))
-            p++;
-        if (!*p)
-            break;
-        else if (isalpha(*p)) {
-            op = *p++;
-        } else {
-            if (!op) {
-                PyErr_Format(
-                    PyExc_ValueError, "no command at start of path"
-                    );
-                return NULL;
-            }
-            COMMA_WSP;            
-        }
-        q = p; /* start of arguments */
-        switch (op) {
-        case 'M':
-        case 'm':
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 'm')
-                self->path->rel_to_abs(&x, &y);
-            self->path->move_to(x, y);
-            break;
-        case 'L':
-        case 'l':
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 'l')
-                self->path->rel_to_abs(&x, &y);
-            self->path->line_to(x, y);
-            break;
-        case 'h':
-        case 'H':
-            x = strtod(p, &p) * scale;
-            if (self->path->last_vertex(&x2, &y2) > 0) {
-                if (op == 'h')
-                    x += x2;
-                self->path->line_to(x, y2);
-            }
-            break;
-        case 'v':
-        case 'V':
-            y = strtod(p, &p) * scale;
-            if (self->path->last_vertex(&x2, &y2) > 0) {
-                if (op == 'v')
-                    y += y2;
-                self->path->line_to(x2, y);
-            }
-            break;
-        case 'c':
-        case 'C':
-            /* cubic bezier (postscript-style) */
-            x1 = strtod(p, &p) * scale; COMMA_WSP;
-            y1 = strtod(p, &p) * scale; COMMA_WSP;
-            x2 = strtod(p, &p) * scale; COMMA_WSP;
-            y2 = strtod(p, &p) * scale; COMMA_WSP;
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 'c') {
-                self->path->rel_to_abs(&x1, &y1);
-                self->path->rel_to_abs(&x2, &y2);
-                self->path->rel_to_abs(&x, &y);
-            }
-            self->path->curve4(x1, y1, x2, y2, x, y);
-            curve = true;
-            break;
-        case 's':
-        case 'S':
-            /* smooth cubic bezier (postscript-style) */
-            x2 = strtod(p, &p) * scale; COMMA_WSP;
-            y2 = strtod(p, &p) * scale; COMMA_WSP;
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 's') {
-                self->path->rel_to_abs(&x2, &y2);
-                self->path->rel_to_abs(&x, &y);
-            }
-            if (self->path->last_vertex(&x1, &y1)) {
-                /* find control segment in previous curve */
-                double x0, y0;
-                if (self->path->prev_vertex(&x0, &y0)) {
-                    x1 += x1 - x0;
-                    y1 += y1 - y0;
-                    self->path->curve4(x1, y1, x2, y2, x, y);
-                }
-            }
-            curve = true;
-            break;
-        case 'q':
-        case 'Q':
-            /* quadratic bezier (truetype-style) */
-            x1 = strtod(p, &p) * scale; COMMA_WSP;
-            y1 = strtod(p, &p) * scale; COMMA_WSP;
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 'q') {
-                self->path->rel_to_abs(&x1, &y1);
-                self->path->rel_to_abs(&x, &y);
-            }
-            self->path->curve3(x1, y1, x, y);
-            curve = true;
-            break;
-        case 't':
-        case 'T':
-            /* smooth quadratic bezier */
-            x = strtod(p, &p) * scale; COMMA_WSP;
-            y = strtod(p, &p) * scale;
-            if (op == 't')
-                self->path->rel_to_abs(&x, &y);
-            if (self->path->last_vertex(&x1, &y1)) {
-                /* find control segment in previous curve */
-                double x0, y0;
-                if (self->path->prev_vertex(&x0, &y0)) {
-                    x1 += x1 - x0;
-                    y1 += y1 - y0;
-                    self->path->curve3(x1, y1, x, y);
-                }
-            }
-            curve = true;
-            break;
-        case 'Z':
-        case 'z':
-            p++;
-            self->path->end_poly();
-            break;
-        default:
-            PyErr_Format(
-                PyExc_ValueError,
-                "unknown path command '%c'", op
-                );
-            /* FIXME: cleanup */
-            return NULL;
-        }
-        if (p == q) {
-            PyErr_Format(
-                PyExc_ValueError,
-                "invalid arguments for command '%c'", op
-                );
-            /* FIXME: cleanup */
-            return NULL;
-        }
-    }
-
-    if (curve) {
-        /* expand curves */
-        agg::path_storage* path = self->path;
-        agg::conv_curve<agg::path_storage> curve(*path);
-        self->path = new agg::path_storage();
-        self->path->add_path(curve, 0, false);
-        delete path;
-    }
-
-    return (PyObject*) self;
-}
 void expandPaths(PathObject *self){
     agg::path_storage* path = self->path;
     agg::conv_curve<agg::path_storage> curve(*path);
     self->path = new agg::path_storage();
-    self->path->add_path(curve, 0, false);
+    self->path->concat_path(curve);
     delete path;
 }
 
-static PyObject*
-path_moveto(PathObject* self, PyObject* args)
-{
+static PyObject* path_moveto(PathObject* self, PyObject* args){
     double x, y;
     if (!PyArg_ParseTuple(args, "dd:moveto", &x, &y))
         return NULL;
@@ -1824,7 +1698,7 @@ path_curveto(PathObject* self, PyObject* args)
 static PyObject*
 path_curve3to(PathObject* self, PyObject* args)
 {
-    double x1, y1, x2, y2, x, y;
+    double x1, y1, x, y;
     if (!PyArg_ParseTuple(args, "dddd:curve3to", &x1, &y1, &x, &y))
         return NULL;
 
@@ -1868,9 +1742,7 @@ path_rcurveto(PathObject* self, PyObject* args)
     return Py_None;
 }
 
-static PyObject*
-path_close(PathObject* self, PyObject* args)
-{
+static PyObject* path_close(PathObject* self, PyObject* args){
     if (!PyArg_ParseTuple(args, ":close"))
         return NULL;
 
@@ -1879,7 +1751,7 @@ path_close(PathObject* self, PyObject* args)
     agg::path_storage* path = self->path;
     agg::conv_curve<agg::path_storage> curve(*path);
     self->path = new agg::path_storage();
-    self->path->add_path(curve, 0, false);
+    self->path->concat_path(curve);
     delete path;
 
     Py_INCREF(Py_None);
@@ -1901,12 +1773,14 @@ path_polygon(PathObject* self, PyObject* args)
     agg::path_storage path;
 
     path.move_to(xy[0].X, xy[0].Y);
+
     for (int i = 1; i < count; i++)
         path.line_to(xy[i].X, xy[i].Y);
+
     path.close_polygon();
     delete xy;
 
-    self->path->add_path(path, 0, false);
+    self->path->concat_path(path);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -2013,7 +1887,6 @@ static PyMethodDef aggdraw_functions[] = {
     {"Pen", (PyCFunction) pen_new, METH_VARARGS|METH_KEYWORDS},
     {"Brush", (PyCFunction) brush_new, METH_VARARGS|METH_KEYWORDS},
     {"Font", (PyCFunction) font_new, METH_VARARGS|METH_KEYWORDS},
-    {"Symbol", (PyCFunction) symbol_new, METH_VARARGS},
     {"Path", (PyCFunction) path_new, METH_VARARGS},
     {"Draw", (PyCFunction) draw_new, METH_VARARGS},
 #if defined(WIN32)

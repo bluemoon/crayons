@@ -1,36 +1,40 @@
 import os, sys
 import nose
 
-from setuptools import setup, find_packages
+from distutils.core import setup
 from distutils.extension import Extension
 
-FREETYPE = False
-FFTW     = False
+FREETYPE = True
+FFTW     = True
 
 FREETYPE_ROOT = "/usr"
 AGG_EXT = "ext/aggdraw/"
 
 agg_defines      = []
-agg_include_dirs = [AGG_EXT+"agg2/include"]
+agg_include_dirs = [AGG_EXT+"agg2.5/include"]
 agg_library_dirs = []
 agg_libraries    = []
 
 agg_sources = [
-    AGG_EXT+"agg2/src/agg_arc.cpp",
-    AGG_EXT+"agg2/src/agg_bezier_arc.cpp",
-    AGG_EXT+"agg2/src/agg_curves.cpp",
-    AGG_EXT+"agg2/src/agg_path_storage.cpp",
-    AGG_EXT+"agg2/src/agg_rasterizer_scanline_aa.cpp",
-    AGG_EXT+"agg2/src/agg_trans_affine.cpp",
-    AGG_EXT+"agg2/src/agg_vcgen_contour.cpp",
-    AGG_EXT+"agg2/src/agg_vcgen_stroke.cpp",
+    AGG_EXT+"agg2.5/src/agg_arc.cpp",
+    AGG_EXT+"agg2.5/src/agg_bezier_arc.cpp",
+    AGG_EXT+"agg2.5/src/agg_curves.cpp",
+    #AGG_EXT+"agg2.5/src/agg_path_storage.cpp",
+    #AGG_EXT+"agg2.5/src/agg_rasterizer_scanline_aa.cpp",
+    AGG_EXT+"agg2.5/src/agg_trans_affine.cpp",
+    AGG_EXT+"agg2.5/src/agg_arrowhead.cpp",
+    AGG_EXT+"agg2.5/src/agg_vcgen_contour.cpp",
+    AGG_EXT+"agg2.5/src/agg_vcgen_stroke.cpp",
+    AGG_EXT+"agg2.5/src/agg_vcgen_dash.cpp",
+    AGG_EXT+"agg2.5/src/agg_vcgen_markers_term.cpp",
+
     AGG_EXT+"aggdraw.cxx",
     ]
 
 if FREETYPE:
     agg_defines.append(("HAVE_FREETYPE2", None))
-    agg_sources.extend([AGG_EXT+"agg2/font_freetype/agg_font_freetype.cpp",])
-    agg_include_dirs.append(AGG_EXT+"agg2/font_freetype")
+    agg_sources.extend([AGG_EXT+"agg2.5/font_freetype/agg_font_freetype.cpp",])
+    agg_include_dirs.append(AGG_EXT+"agg2.5/font_freetype")
     agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include"))
     agg_include_dirs.append(os.path.join(FREETYPE_ROOT, "include/freetype2"))
     agg_library_dirs.append(os.path.join(FREETYPE_ROOT, "lib"))
@@ -49,11 +53,12 @@ Supershape  = Extension("pypaint.cSuperformula", sources = ["ext/supershape/supe
 modules     = [Aggdraw, Geometry, Pathmatics, Supershape]
 
 if FFTW:
-    Fluids  = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'])
+    Fluids  = Extension("pypaint.cFluid", sources = ["ext/fluid/fluid.c"], libraries=['fftw', 'rfftw'], library_dirs=['/usr/lib', '/usr/local/lib'])
+    modules.append(Fluids)
 
 setup( 
     name = "pypaint",
-    version = "0.0.2b",
+    version = "0.0.3b",
     author = "Alex Toney",
     packages=[
         'pypaint',
@@ -64,7 +69,6 @@ setup(
         'pypaint.interfaces.PIL',
         'pypaint.library', 
         ],
-    install_requires = ['scipy>=0.0', 'numpy>=0.0'],
     ext_modules=modules,
 )
 
