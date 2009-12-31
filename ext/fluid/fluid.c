@@ -5,11 +5,13 @@
 
 #include "structmember.h"
 
+
 /// Defines
 #define FFT(s, u)                                                  \
   if (s==1) rfftwnd_one_real_to_complex(self->plan_rc, (fftw_real *)u, (fftw_complex*)u); \
   else rfftwnd_one_complex_to_real(self->plan_cr, (fftw_complex *)u, (fftw_real *)u);
 #define floor(x) ((x)>=0.0?((int)(x)):(-((int)(1-(x)))))
+
 
 
 /// Struct for python object
