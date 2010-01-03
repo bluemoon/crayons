@@ -7,4 +7,5 @@ Install:
 
   
 Aggdraw modifications:
+  # updated aggdraw to use agg 2.5
   # support for quadratic and cubic beziers.
