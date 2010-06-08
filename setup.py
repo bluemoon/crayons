@@ -5,7 +5,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 
 FREETYPE = True
-FFTW     = True
+FFTW     = False
 
 FREETYPE_ROOT = "/usr"
 AGG_EXT = "ext/aggdraw/"
