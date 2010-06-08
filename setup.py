@@ -58,7 +58,7 @@ if FFTW:
 
 setup( 
     name = "pypaint",
-    version = "0.0.3b",
+    version = "0.0.4b",
     author = "Alex Toney",
     packages=[
         'pypaint',
